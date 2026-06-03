@@ -68,6 +68,24 @@ export const useTickets = () => {
     return request<Ticket>(`/tickets/${id}`);
   };
 
+  /**
+   * Issues a tenant reported themselves (tenant-shell scope). Backend swap
+   * hits `/me/tickets`.
+   */
+  const listForTenant = async (
+    tenantId: string,
+  ): Promise<TicketWithRefs[]> => {
+    if (useMock) {
+      return ticketsMock
+        .filter((t) => t.reporterRole === "tenant" && t.reporterId === tenantId)
+        .map(hydrate);
+    }
+    const { request } = useApi();
+    return request<TicketWithRefs[]>(
+      "/me/tickets?expand=unit,property,reporter,comments",
+    );
+  };
+
   const getWithRefs = async (id: string): Promise<TicketWithRefs | null> => {
     if (useMock) {
       const found = ticketsMock.find((t) => t.id === id);
@@ -151,6 +169,7 @@ export const useTickets = () => {
     listWithRefs,
     get,
     getWithRefs,
+    listForTenant,
     create,
     transitionStatus,
     addComment,

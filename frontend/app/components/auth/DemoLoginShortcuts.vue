@@ -15,7 +15,7 @@ import Button from "~/components/ui/Button.vue";
 // Flip to true once the tenant shell is ready to demo. The button's
 // click handler and loading state are already wired — only the visual
 // gate below switches presentations.
-const TENANT_ENABLED = false;
+const TENANT_ENABLED = true;
 
 const auth = useAuthStore();
 const { t } = useI18n();

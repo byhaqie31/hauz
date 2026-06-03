@@ -833,3 +833,20 @@ Entities migrate independently; we don't need a big-bang swap.
 7. **Maintenance tickets** — types + status transition map + Zod schemas + `useTickets` service + Kanban + detail page with comment thread + create modal. See § 7.
 8. **Cross-entity views** — `useDashboard` + `useReports` composables → dashboard tiles, 12-month chart, "Needs attention" feed → reports page (year picker, per-property breakdown, CSV export, PDF stub). See § 8.
 9. **Settings** — `useOwnerSettings` composable + 4-tab page (Profile / Preferences / Notifications / Plan). Closes the owner shell. See § 9.
+
+---
+
+## 13. Tenant shell
+
+The tenant-facing app reuses the owner entities and services rather than introducing new ones — it's a **read-mostly view onto the same mocks, scoped to one tenant**. No new types or mock seed data; the only additions are tenant-scoped service reads and a binding composable.
+
+**Binding.** [composables/useTenantSession.ts](../../frontend/app/composables/useTenantSession.ts) resolves the signed-in tenant to a record id. In mock/demo mode it returns the seeded `t-aminah` (richest tenant: active agreement, paid + outstanding invoices, open + resolved issues). This is the **single swap point**: when Sanctum lands, a real tenant's auth-user id *is* their tenant id and the mock branch drops.
+
+**Service reads** (mock filters now, `/me/*` endpoints later):
+- `useAgreements().getActiveForTenant(tenantId)` → the tenant's current `AgreementWithRefs`.
+- `useInvoices().listForTenant(tenantId)` → invoices across the tenant's agreements.
+- `useTickets().listForTenant(tenantId)` → issues the tenant reported.
+
+**Surfaces** (`pages/tenant/`): Home (rent-due hero + stats + open-issues), Agreement (read-only summary + Phase-4 documents card, reuses owner `AgreementDocumentsPanel`), Payments (invoice cards + `PayInvoiceModal` simulating an FPX pay→paid round-trip via the existing `recordPayment`), Issues (list + detail with comment thread, `ReportIssueModal` filing against the tenant's own unit; **status stays owner-controlled** — tenants comment but don't transition), Profile (view + single-form edit of identity / personal / emergency, writing through `useTenants().update`).
+
+**Schema impact:** none beyond the owner entities. The backend adds tenant-scoped `/me/agreement`, `/me/invoices`, `/me/tickets` read endpoints (server already knows the caller), plus a real rent-payment flow behind `PayInvoiceModal` (currently a mocked FPX success). Profile edits hit the same tenant `PATCH` as the owner-side tenant detail.

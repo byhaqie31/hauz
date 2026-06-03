@@ -52,7 +52,32 @@ export const tenantEmergencyContactSchema = z.object({
   relationship: z.string().max(50).optional(),
 });
 
+// Tenant self-service profile form (tenant shell). Flat shape: identity +
+// personal + emergency contact in one form. `monthlyIncomeRm` is edited in
+// ringgit and converted to sen at the page edge; status is owner-controlled
+// so it's intentionally absent here.
+export const tenantProfileFormSchema = z.object({
+  name: z.string().min(2).max(80),
+  email: z.string().email(),
+  phone: phoneSchema,
+  icNumber: z
+    .union([
+      z.literal(""),
+      z.string().regex(/^\d{6}-\d{2}-\d{4}$/, "MyKad format YYMMDD-PB-####"),
+    ])
+    .optional(),
+  dateOfBirth: optionalIsoDate,
+  occupation: z.string().max(100).optional(),
+  employer: z.string().max(100).optional(),
+  monthlyIncomeRm: z.number().nonnegative().optional(),
+  nationality: z.string().max(50).optional(),
+  ecName: z.string().max(80).optional(),
+  ecPhone: optionalPhone,
+  ecRelationship: z.string().max(50).optional(),
+});
+
 export type TenantInputDto = z.infer<typeof tenantInputSchema>;
+export type TenantProfileFormDto = z.infer<typeof tenantProfileFormSchema>;
 export type TenantIdentityDto = z.infer<typeof tenantIdentitySchema>;
 export type TenantPersonalDto = z.infer<typeof tenantPersonalSchema>;
 export type TenantEmergencyContactDto = z.infer<
