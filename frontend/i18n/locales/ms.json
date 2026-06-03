@@ -100,6 +100,32 @@
           "title": "Kongsikan pendapat anda",
           "description": "Selesai meneroka? Tekan di sini bila-bila masa untuk beri maklum balas — apa yang berkesan, apa yang tidak, dan apa yang masih kurang. Borang ringkas akan dibuka di tab baharu."
         }
+      },
+      "tenantSteps": {
+        "welcome": {
+          "title": "Selamat datang ke portal penyewa anda",
+          "description": "Tinjauan ringkas semua yang anda boleh lakukan di sini — bayar sewa, jejak aduan, dan urus maklumat anda. Jalankan semula bila-bila masa dari penjuru kanan atas."
+        },
+        "sidebar": {
+          "title": "Semuanya di satu tempat",
+          "description": "Utama, perjanjian, pembayaran, aduan, dan profil anda — semua boleh dicapai dari menu ini."
+        },
+        "mobileMenu": {
+          "title": "Menu anda, satu ketik sahaja",
+          "description": "Ketik menu untuk mencapai perjanjian, pembayaran, aduan, dan profil anda."
+        },
+        "rent": {
+          "title": "Sewa anda sepintas lalu",
+          "description": "Lihat apa yang perlu dibayar dan bayar dalam talian dengan beberapa ketikan. Invois yang dibayar menjadi resit yang boleh anda semak semula."
+        },
+        "actions": {
+          "title": "Terus ke apa yang anda perlukan",
+          "description": "Pautan pantas untuk melihat perjanjian, semua pembayaran, atau melaporkan aduan."
+        },
+        "issues": {
+          "title": "Lapor dan jejak aduan",
+          "description": "Bangkitkan aduan penyelenggaraan dan ikuti perbualan dengan tuan rumah anda di sini."
+        }
       }
     },
     "landing": {
@@ -924,9 +950,186 @@
     },
     "home": {
       "title": "Selamat datang",
+      "greeting": "Hai, {name}",
+      "subtitle": "Segala-galanya tentang penyewaan anda, di satu tempat.",
       "currentRent": "Sewa semasa",
       "payNow": "Bayar sekarang",
-      "noActiveAgreement": "Perjanjian anda sedang disediakan oleh tuan rumah."
+      "noActiveAgreement": "Perjanjian anda sedang disediakan oleh tuan rumah.",
+      "noAgreementTitle": "Tiada penyewaan aktif lagi",
+      "rentDue": {
+        "title": "Sewa perlu dibayar",
+        "allPaidTitle": "Sewa",
+        "allPaid": "Anda sudah jelas semua",
+        "allPaidHelp": "Sewa seterusnya perlu dibayar pada {date}.",
+        "noUpcoming": "Tiada sewa akan datang buat masa ini.",
+        "dueOn": "Perlu dibayar {date}",
+        "overdueOn": "Sepatutnya dibayar {date}"
+      },
+      "stats": {
+        "monthlyRent": "Sewa bulanan",
+        "depositHeld": "Deposit dipegang",
+        "agreementEnds": "Penyewaan tamat",
+        "openIssues": "Aduan terbuka",
+        "daysLeft": "{n} hari lagi",
+        "endedAgo": "Tamat {n} hari lalu"
+      },
+      "yourHome": "Kediaman anda",
+      "viewAgreement": "Lihat perjanjian",
+      "viewPayments": "Lihat pembayaran",
+      "reportIssue": "Lapor aduan",
+      "openIssuesTitle": "Aduan terbuka",
+      "viewAll": "Lihat semua",
+      "noOpenIssues": "Tiada aduan terbuka. Beritahu tuan rumah jika ada yang perlu dibaiki."
+    },
+    "agreement": {
+      "title": "Perjanjian anda",
+      "subtitle": "Terma penyewaan semasa anda.",
+      "none": "Perjanjian anda sedang disediakan oleh tuan rumah.",
+      "term": "Tempoh",
+      "months": "{n} bulan",
+      "years": "{n} tahun",
+      "monthlyRent": "Sewa bulanan",
+      "deposit": "Deposit",
+      "dueDay": "Sewa perlu dibayar",
+      "dueOn": "Hari {day} setiap bulan",
+      "startDate": "Tarikh mula",
+      "endDate": "Tarikh tamat",
+      "money": "Caj",
+      "lateFee": "Denda lewat",
+      "lateFeeHint": "Dikenakan apabila sewa melepasi tarikh akhir.",
+      "documents": "Dokumen",
+      "status": {
+        "draft": "Draf",
+        "active": "Aktif",
+        "expired": "Tamat tempoh",
+        "terminated": "Ditamatkan"
+      }
+    },
+    "payments": {
+      "subtitle": "Invois dan resit anda.",
+      "outstanding": "Tertunggak",
+      "allSettled": "Semua dijelaskan",
+      "emptyTitle": "Tiada invois lagi",
+      "emptyDescription": "Invois sewa anda akan dipaparkan di sini.",
+      "dueOn": "Perlu dibayar {date}",
+      "paidOn": "Dibayar {date}",
+      "pay": "Bayar sekarang",
+      "view": "Lihat",
+      "status": {
+        "pending": "Belum dijelaskan",
+        "paid": "Dibayar",
+        "overdue": "Tertunggak",
+        "cancelled": "Dibatalkan"
+      },
+      "methods": {
+        "fpx": "FPX",
+        "card": "Kad",
+        "cash": "Tunai",
+        "transfer": "Pindahan"
+      },
+      "payModal": {
+        "title": "Bayar sewa",
+        "period": "Tempoh bil",
+        "rent": "Sewa",
+        "lateFee": "Denda lewat",
+        "total": "Jumlah",
+        "bank": "Bayar dengan",
+        "simNote": "Demo sahaja — tiada pembayaran sebenar dibuat.",
+        "receipt": "Resit",
+        "payCta": "Bayar {amount}",
+        "processing": "Memproses pembayaran…",
+        "successToast": "Pembayaran berjaya — resit dihantar ke emel anda."
+      }
+    },
+    "tickets": {
+      "subtitle": "Lapor dan jejak aduan penyelenggaraan.",
+      "reportCta": "Lapor aduan",
+      "emptyTitle": "Tiada aduan dilaporkan",
+      "emptyDescription": "Lapor aduan bila-bila masa dan kami akan maklumkan tuan rumah anda.",
+      "updated": "Dikemas kini {date}",
+      "comments": "{n} komen",
+      "status": {
+        "new": "Baharu",
+        "in_progress": "Dalam proses",
+        "resolved": "Selesai",
+        "reopened": "Dibuka semula"
+      },
+      "priority": {
+        "low": "Rendah",
+        "medium": "Sederhana",
+        "high": "Tinggi",
+        "urgent": "Segera"
+      },
+      "category": {
+        "plumbing": "Paip",
+        "electrical": "Elektrik",
+        "appliance": "Perkakas",
+        "structural": "Struktur",
+        "pest": "Perosak",
+        "other": "Lain-lain"
+      },
+      "report": {
+        "title": "Lapor aduan",
+        "description": "Beritahu tuan rumah apa yang perlu dibaiki.",
+        "fields": {
+          "category": "Kategori",
+          "priority": "Keutamaan",
+          "title": "Tajuk",
+          "description": "Penerangan"
+        },
+        "placeholders": {
+          "title": "Ringkasan pendek aduan",
+          "description": "Apa yang rosak, bila ia bermula, dan apa yang telah anda cuba"
+        },
+        "submit": "Hantar laporan",
+        "createdToast": "Aduan dilaporkan — tuan rumah anda telah dimaklumkan."
+      },
+      "detail": {
+        "back": "Kembali ke aduan",
+        "notFound": "Aduan tidak dijumpai.",
+        "description": "Penerangan",
+        "reportedOn": "Dilaporkan {date}",
+        "statusNote": "Tuan rumah anda mengemas kini status. Anda akan dimaklumkan jika ada perubahan.",
+        "comments": "Komen",
+        "noComments": "Tiada komen lagi.",
+        "addComment": "Tambah komen",
+        "commentPlaceholder": "Tulis mesej kepada tuan rumah anda…",
+        "post": "Hantar komen",
+        "commentToast": "Komen dihantar.",
+        "you": "Anda",
+        "landlord": "Tuan rumah"
+      }
+    },
+    "profile": {
+      "subtitle": "Maklumat anda, dikongsi dengan tuan rumah anda.",
+      "edit": "Sunting",
+      "save": "Simpan perubahan",
+      "cancel": "Batal",
+      "savedToast": "Profil dikemas kini.",
+      "notSet": "Tidak ditetapkan",
+      "incomeHint": "Membantu tuan rumah dengan semakan kemampuan.",
+      "sections": {
+        "identity": "Identiti",
+        "personal": "Peribadi",
+        "emergency": "Hubungan kecemasan"
+      },
+      "fields": {
+        "name": "Nama penuh",
+        "email": "Emel",
+        "phone": "Telefon",
+        "icNumber": "Nombor MyKad",
+        "dateOfBirth": "Tarikh lahir",
+        "occupation": "Pekerjaan",
+        "employer": "Majikan",
+        "monthlyIncome": "Pendapatan bulanan",
+        "nationality": "Warganegara",
+        "ecName": "Nama hubungan",
+        "ecPhone": "Telefon hubungan",
+        "ecRelationship": "Hubungan"
+      },
+      "placeholders": {
+        "icNumber": "YYMMDD-PB-####"
+      }
     }
   }
 }

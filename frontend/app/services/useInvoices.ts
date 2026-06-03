@@ -65,6 +65,29 @@ export const useInvoices = () => {
     return request<Invoice>(`/invoices/${id}`);
   };
 
+  /**
+   * Invoices across all of a tenant's agreements (tenant-shell scope).
+   * Backend swap hits `/me/invoices`.
+   */
+  const listForTenant = async (
+    tenantId: string,
+  ): Promise<InvoiceWithRefs[]> => {
+    if (useMock) {
+      const agreementIds = new Set(
+        agreementsMock
+          .filter((a) => a.tenantId === tenantId)
+          .map((a) => a.id),
+      );
+      return invoicesMock
+        .filter((i) => agreementIds.has(i.agreementId))
+        .map(hydrate);
+    }
+    const { request } = useApi();
+    return request<InvoiceWithRefs[]>(
+      "/me/invoices?expand=agreement,unit,property,tenant,payments",
+    );
+  };
+
   const updateStatus = async (
     id: string,
     status: InvoiceStatus,
@@ -118,5 +141,13 @@ export const useInvoices = () => {
     return request(`/invoices/${id}/send`, { method: "POST" });
   };
 
-  return { list, listWithRefs, get, updateStatus, recordPayment, sendInvoice };
+  return {
+    list,
+    listWithRefs,
+    get,
+    listForTenant,
+    updateStatus,
+    recordPayment,
+    sendInvoice,
+  };
 };

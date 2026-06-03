@@ -43,7 +43,14 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 - Reports ([pages/owner/reports.vue](frontend/app/pages/owner/reports.vue)) — year picker, monthly area chart, per-property breakdown with RPGT net gain, working CSV download + Phase-4 PDF stub.
 - Settings ([pages/owner/settings.vue](frontend/app/pages/owner/settings.vue)) — 4-tab (Profile, Preferences, Notifications, Plan).
 
-**Tenant shell** — placeholder pages exist but not yet built out.
+**Tenant shell — complete in mock form (5 surfaces):**
+- Home ([pages/tenant/index.vue](frontend/app/pages/tenant/index.vue)) — rent-due hero (earliest unpaid invoice + Pay now), 4 stat tiles (rent / deposit / tenancy-ends / open-issues), "Your home" property card + quick actions, open-issues preview.
+- Agreement ([pages/tenant/agreement.vue](frontend/app/pages/tenant/agreement.vue)) — read-only term/money summary + Documents card (reuses owner `AgreementDocumentsPanel`, gated by `features.documents`).
+- Payments ([pages/tenant/payments.vue](frontend/app/pages/tenant/payments.vue)) — outstanding summary + invoice cards; `PayInvoiceModal` simulates an FPX pay→paid round-trip (mock) and doubles as the receipt view.
+- Issues ([pages/tenant/tickets/](frontend/app/pages/tenant/tickets/)) — list ([index.vue](frontend/app/pages/tenant/tickets/index.vue)) + detail ([[id].vue](frontend/app/pages/tenant/tickets/[id].vue)) with comment thread (tenant comments; status is owner-controlled / read-only here) + `ReportIssueModal` (files against the tenant's own unit).
+- Profile ([pages/tenant/profile.vue](frontend/app/pages/tenant/profile.vue)) — view + single-form edit of Identity / Personal / Emergency contact.
+
+The signed-in tenant is bound to a seeded tenant (Aminah) via [composables/useTenantSession.ts](frontend/app/composables/useTenantSession.ts) — the single swap point for `/me/*` endpoints when the backend lands. Tenant-scoped service reads are `getActiveForTenant` (agreements) and `listForTenant` (invoices, tickets). The "Continue as tenant" demo shortcut is now enabled (`TENANT_ENABLED` in `DemoLoginShortcuts.vue`).
 
 **Backend** — not started.
 

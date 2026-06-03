@@ -100,6 +100,32 @@
           "title": "Tell us what you think",
           "description": "Done exploring? Tap here anytime to share feedback — what worked, what didn't, what's missing. It opens a short form in a new tab."
         }
+      },
+      "tenantSteps": {
+        "welcome": {
+          "title": "Welcome to your tenant portal",
+          "description": "A quick tour of everything you can do here — pay rent, track issues, and manage your details. Re-run it anytime from the top right."
+        },
+        "sidebar": {
+          "title": "Everything in one place",
+          "description": "Home, agreement, payments, issues, and your profile — all reachable from this menu."
+        },
+        "mobileMenu": {
+          "title": "Your menu, one tap away",
+          "description": "Tap the menu to reach your agreement, payments, issues, and profile."
+        },
+        "rent": {
+          "title": "Your rent at a glance",
+          "description": "See what's due and pay online in a few taps. Paid invoices turn into receipts you can revisit."
+        },
+        "actions": {
+          "title": "Jump to what you need",
+          "description": "Quick links to view your agreement, see all payments, or report an issue."
+        },
+        "issues": {
+          "title": "Report and track issues",
+          "description": "Raise a maintenance issue and follow the conversation with your landlord right here."
+        }
       }
     },
     "landing": {
@@ -924,9 +950,186 @@
     },
     "home": {
       "title": "Welcome",
+      "greeting": "Hi, {name}",
+      "subtitle": "Everything about your tenancy, in one place.",
       "currentRent": "Current rent",
       "payNow": "Pay now",
-      "noActiveAgreement": "Your agreement is being prepared by your landlord."
+      "noActiveAgreement": "Your agreement is being prepared by your landlord.",
+      "noAgreementTitle": "No active tenancy yet",
+      "rentDue": {
+        "title": "Rent due",
+        "allPaidTitle": "Rent",
+        "allPaid": "You're all paid up",
+        "allPaidHelp": "Next rent is due {date}.",
+        "noUpcoming": "No upcoming rent right now.",
+        "dueOn": "Due {date}",
+        "overdueOn": "Was due {date}"
+      },
+      "stats": {
+        "monthlyRent": "Monthly rent",
+        "depositHeld": "Deposit held",
+        "agreementEnds": "Tenancy ends",
+        "openIssues": "Open issues",
+        "daysLeft": "{n} days left",
+        "endedAgo": "Ended {n} days ago"
+      },
+      "yourHome": "Your home",
+      "viewAgreement": "View agreement",
+      "viewPayments": "View payments",
+      "reportIssue": "Report an issue",
+      "openIssuesTitle": "Open issues",
+      "viewAll": "View all",
+      "noOpenIssues": "No open issues. Let your landlord know if something needs fixing."
+    },
+    "agreement": {
+      "title": "Your agreement",
+      "subtitle": "The terms of your current tenancy.",
+      "none": "Your agreement is being prepared by your landlord.",
+      "term": "Term",
+      "months": "{n} months",
+      "years": "{n} years",
+      "monthlyRent": "Monthly rent",
+      "deposit": "Deposit",
+      "dueDay": "Rent due",
+      "dueOn": "Day {day} monthly",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "money": "Charges",
+      "lateFee": "Late fee",
+      "lateFeeHint": "Charged once rent passes the due date.",
+      "documents": "Documents",
+      "status": {
+        "draft": "Draft",
+        "active": "Active",
+        "expired": "Expired",
+        "terminated": "Terminated"
+      }
+    },
+    "payments": {
+      "subtitle": "Your invoices and receipts.",
+      "outstanding": "Outstanding",
+      "allSettled": "All settled",
+      "emptyTitle": "No invoices yet",
+      "emptyDescription": "Your rent invoices will show up here.",
+      "dueOn": "Due {date}",
+      "paidOn": "Paid {date}",
+      "pay": "Pay now",
+      "view": "View",
+      "status": {
+        "pending": "Pending",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      },
+      "methods": {
+        "fpx": "FPX",
+        "card": "Card",
+        "cash": "Cash",
+        "transfer": "Transfer"
+      },
+      "payModal": {
+        "title": "Pay rent",
+        "period": "Billing period",
+        "rent": "Rent",
+        "lateFee": "Late fee",
+        "total": "Total",
+        "bank": "Pay with",
+        "simNote": "Demo only — no real payment is made.",
+        "receipt": "Receipt",
+        "payCta": "Pay {amount}",
+        "processing": "Processing payment…",
+        "successToast": "Payment successful — receipt sent to your email."
+      }
+    },
+    "tickets": {
+      "subtitle": "Report and track maintenance issues.",
+      "reportCta": "Report an issue",
+      "emptyTitle": "No issues reported",
+      "emptyDescription": "Report an issue any time and we'll notify your landlord.",
+      "updated": "Updated {date}",
+      "comments": "{n} comments",
+      "status": {
+        "new": "New",
+        "in_progress": "In progress",
+        "resolved": "Resolved",
+        "reopened": "Reopened"
+      },
+      "priority": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "urgent": "Urgent"
+      },
+      "category": {
+        "plumbing": "Plumbing",
+        "electrical": "Electrical",
+        "appliance": "Appliance",
+        "structural": "Structural",
+        "pest": "Pest",
+        "other": "Other"
+      },
+      "report": {
+        "title": "Report an issue",
+        "description": "Tell your landlord what needs fixing.",
+        "fields": {
+          "category": "Category",
+          "priority": "Priority",
+          "title": "Title",
+          "description": "Description"
+        },
+        "placeholders": {
+          "title": "Short summary of the issue",
+          "description": "What's wrong, when it started, and anything you've tried"
+        },
+        "submit": "Send report",
+        "createdToast": "Issue reported — your landlord has been notified."
+      },
+      "detail": {
+        "back": "Back to issues",
+        "notFound": "Issue not found.",
+        "description": "Description",
+        "reportedOn": "Reported {date}",
+        "statusNote": "Your landlord updates the status. You'll be notified of any changes.",
+        "comments": "Comments",
+        "noComments": "No comments yet.",
+        "addComment": "Add a comment",
+        "commentPlaceholder": "Write a message to your landlord…",
+        "post": "Post comment",
+        "commentToast": "Comment posted.",
+        "you": "You",
+        "landlord": "Landlord"
+      }
+    },
+    "profile": {
+      "subtitle": "Your details, shared with your landlord.",
+      "edit": "Edit",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "savedToast": "Profile updated.",
+      "notSet": "Not set",
+      "incomeHint": "Helps your landlord with affordability checks.",
+      "sections": {
+        "identity": "Identity",
+        "personal": "Personal",
+        "emergency": "Emergency contact"
+      },
+      "fields": {
+        "name": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "icNumber": "MyKad number",
+        "dateOfBirth": "Date of birth",
+        "occupation": "Occupation",
+        "employer": "Employer",
+        "monthlyIncome": "Monthly income",
+        "nationality": "Nationality",
+        "ecName": "Contact name",
+        "ecPhone": "Contact phone",
+        "ecRelationship": "Relationship"
+      },
+      "placeholders": {
+        "icNumber": "YYMMDD-PB-####"
+      }
     }
   }
 }
