@@ -100,6 +100,32 @@
           "title": "Kongsikan pendapat anda",
           "description": "Selesai meneroka? Tekan di sini bila-bila masa untuk beri maklum balas — apa yang berkesan, apa yang tidak, dan apa yang masih kurang. Borang ringkas akan dibuka di tab baharu."
         }
+      },
+      "tenantSteps": {
+        "welcome": {
+          "title": "Selamat datang ke portal penyewa anda",
+          "description": "Tinjauan ringkas semua yang anda boleh lakukan di sini — bayar sewa, jejak aduan, dan urus maklumat anda. Jalankan semula bila-bila masa dari penjuru kanan atas."
+        },
+        "sidebar": {
+          "title": "Semuanya di satu tempat",
+          "description": "Utama, perjanjian, pembayaran, aduan, dan profil anda — semua boleh dicapai dari menu ini."
+        },
+        "mobileMenu": {
+          "title": "Menu anda, satu ketik sahaja",
+          "description": "Ketik menu untuk mencapai perjanjian, pembayaran, aduan, dan profil anda."
+        },
+        "rent": {
+          "title": "Sewa anda sepintas lalu",
+          "description": "Lihat apa yang perlu dibayar dan bayar dalam talian dengan beberapa ketikan. Invois yang dibayar menjadi resit yang boleh anda semak semula."
+        },
+        "actions": {
+          "title": "Terus ke apa yang anda perlukan",
+          "description": "Pautan pantas untuk melihat perjanjian, semua pembayaran, atau melaporkan aduan."
+        },
+        "issues": {
+          "title": "Lapor dan jejak aduan",
+          "description": "Bangkitkan aduan penyelenggaraan dan ikuti perbualan dengan tuan rumah anda di sini."
+        }
       }
     },
     "landing": {

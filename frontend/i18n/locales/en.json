@@ -100,6 +100,32 @@
           "title": "Tell us what you think",
           "description": "Done exploring? Tap here anytime to share feedback — what worked, what didn't, what's missing. It opens a short form in a new tab."
         }
+      },
+      "tenantSteps": {
+        "welcome": {
+          "title": "Welcome to your tenant portal",
+          "description": "A quick tour of everything you can do here — pay rent, track issues, and manage your details. Re-run it anytime from the top right."
+        },
+        "sidebar": {
+          "title": "Everything in one place",
+          "description": "Home, agreement, payments, issues, and your profile — all reachable from this menu."
+        },
+        "mobileMenu": {
+          "title": "Your menu, one tap away",
+          "description": "Tap the menu to reach your agreement, payments, issues, and profile."
+        },
+        "rent": {
+          "title": "Your rent at a glance",
+          "description": "See what's due and pay online in a few taps. Paid invoices turn into receipts you can revisit."
+        },
+        "actions": {
+          "title": "Jump to what you need",
+          "description": "Quick links to view your agreement, see all payments, or report an issue."
+        },
+        "issues": {
+          "title": "Report and track issues",
+          "description": "Raise a maintenance issue and follow the conversation with your landlord right here."
+        }
       }
     },
     "landing": {

@@ -15,6 +15,7 @@ const { t } = useI18n();
 const { formatRM } = useMoney();
 const auth = useAuthStore();
 const { tenantId } = useTenantSession();
+const demoTour = useDemoTour("tenant");
 useHead({ title: () => t("tenant.nav.home") });
 
 const agreement = ref<AgreementWithRefs | null>(null);
@@ -46,7 +47,10 @@ const load = async () => {
   }
 };
 
-onMounted(load);
+onMounted(async () => {
+  await load();
+  demoTour.maybeAutoStart();
+});
 
 const firstName = computed(() => (auth.user?.name ?? "").split(" ")[0] ?? "");
 
@@ -144,7 +148,7 @@ const onPaid = async () => {
 
     <template v-else>
       <!-- Rent-due hero -->
-      <Card padding="loose" class="mb-4 sm:mb-6">
+      <Card data-tour="rent" padding="loose" class="mb-4 sm:mb-6">
         <div
           class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
@@ -285,7 +289,7 @@ const onPaid = async () => {
             </div>
           </div>
 
-          <div class="mt-6 flex flex-wrap gap-2 border-t border-line-passive pt-4">
+          <div data-tour="actions" class="mt-6 flex flex-wrap gap-2 border-t border-line-passive pt-4">
             <NuxtLink to="/tenant/agreement">
               <Button variant="ghost" size="sm">
                 <Icon name="FileText" :size="14" class="mr-1.5" />
@@ -308,7 +312,7 @@ const onPaid = async () => {
         </Card>
 
         <!-- Open issues -->
-        <Card padding="loose">
+        <Card data-tour="issues" padding="loose">
           <header class="mb-4 flex items-center justify-between">
             <h2 class="text-card-title font-semibold text-ink">
               {{ t("tenant.home.openIssuesTitle") }}

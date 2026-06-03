@@ -5,11 +5,11 @@ const { toasts } = useToast();
 
 <template>
   <div
-    class="pointer-events-none fixed bottom-6 right-6 z-[100] flex flex-col gap-2"
+    class="pointer-events-none fixed top-20 right-4 sm:right-6 z-[100] flex flex-col gap-2"
   >
     <TransitionGroup
       enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2"
+      enter-from-class="opacity-0 -translate-y-2"
       enter-to-class="opacity-100 translate-y-0"
       leave-active-class="transition duration-200 ease-in"
       leave-from-class="opacity-100"
