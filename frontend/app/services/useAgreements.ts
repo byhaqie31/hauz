@@ -56,6 +56,30 @@ export const useAgreements = () => {
     return request<Agreement>(`/agreements/${id}`);
   };
 
+  /**
+   * The tenant's *current* agreement (tenant-shell scope). Prefers an
+   * active agreement, then the most recent non-draft. Backend swap hits
+   * `/me/agreement` — the server already knows who's asking.
+   */
+  const getActiveForTenant = async (
+    tenantId: string,
+  ): Promise<AgreementWithRefs | null> => {
+    if (useMock) {
+      const mine = agreementsMock.filter((a) => a.tenantId === tenantId);
+      const current =
+        mine.find((a) => a.status === "active") ??
+        mine
+          .filter((a) => a.status !== "draft")
+          .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ??
+        null;
+      return current ? hydrate(current) : null;
+    }
+    const { request } = useApi();
+    return request<AgreementWithRefs | null>(
+      "/me/agreement?expand=unit,property,tenant",
+    );
+  };
+
   const create = async (input: AgreementInput): Promise<Agreement> => {
     if (useMock) {
       const created: Agreement = {
@@ -98,5 +122,13 @@ export const useAgreements = () => {
     await request(`/agreements/${id}`, { method: "DELETE" });
   };
 
-  return { list, listWithRefs, get, create, update, remove };
+  return {
+    list,
+    listWithRefs,
+    get,
+    getActiveForTenant,
+    create,
+    update,
+    remove,
+  };
 };

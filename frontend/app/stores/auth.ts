@@ -59,13 +59,26 @@ export const useAuthStore = defineStore("auth", {
         : email.startsWith("admin")
           ? "admin"
           : "owner";
-      this.user = {
-        id: "stub-" + role,
-        name: role === "tenant" ? "Adi" : role === "admin" ? "Admin" : "Cik Aminah",
-        email,
-        phone: null,
-        role,
-      };
+      // Mock tenants sign in as the seeded "Aminah" tenant so the tenant
+      // shell has a real agreement, invoices, and issues to render. Keep
+      // this id in sync with `useTenantSession`'s demo binding. When Sanctum
+      // lands, the auth user's id *is* the tenant id and this drops away.
+      this.user =
+        role === "tenant"
+          ? {
+              id: "t-aminah",
+              name: "Aminah Binti Yusof",
+              email,
+              phone: "+60 12-345 6789",
+              role,
+            }
+          : {
+              id: "stub-" + role,
+              name: role === "admin" ? "Admin" : "Cik Aminah",
+              email,
+              phone: null,
+              role,
+            };
       persist(this.user);
       this.loading = false;
     },

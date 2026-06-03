@@ -63,7 +63,7 @@ const drawerOpen = ref(false);
         </div>
       </header>
       <main class="flex-1 px-4 md:px-6 py-8 overflow-auto">
-        <div class="max-w-form-readable mx-auto">
+        <div class="max-w-app mx-auto">
           <slot />
         </div>
       </main>
