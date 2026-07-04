@@ -4,9 +4,8 @@
 # Auto-loaded by `docker compose up` (Docker Compose's override convention).
 # GHA bypasses this file on the VPS by invoking `docker compose -f docker-compose.yml up`.
 #
-# This switches the build to the `dev` target (Nuxt dev server with HMR) and
-# bind-mounts the host's frontend source so file changes hot-reload without
-# rebuilding the image.
+# This switches both frontend and backend to dev build targets, bind-mounts
+# source for HMR / live-reload, and exposes extra ports for tooling.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -16,12 +15,44 @@ services:
     volumes:
       - ./frontend:/app
       # Keep container's node_modules and .nuxt isolated from the host so the
-      # Linux container deps don't collide with the macOS host install.
+      # Linux container deps don't collide with the macOS/Windows host install.
       - frontend_node_modules:/app/node_modules
       - frontend_nuxt:/app/.nuxt
     environment:
       - NODE_ENV=development
 
+  backend:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    command: php artisan serve --host=0.0.0.0 --port=9000
+
+  queue-worker:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+
+  scheduler:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+
 volumes:
   frontend_node_modules:
   frontend_nuxt:
+  backend_vendor:
