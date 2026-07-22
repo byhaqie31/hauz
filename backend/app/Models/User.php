@@ -28,6 +28,8 @@ class User extends Authenticatable
         'role',
         'password',
         'invited_at',
+        'status',
+        'invited_by',
         'business_name',
         'bank_account_last4',
         'photo_path',
@@ -68,6 +70,11 @@ class User extends Authenticatable
     public function properties(): HasMany
     {
         return $this->hasMany(Property::class, 'owner_id');
+    }
+
+    public function invitedTenants(): HasMany
+    {
+        return $this->hasMany(User::class, 'invited_by');
     }
 
     public function coOwnerships(): HasMany

@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     zip \
     unzip \
     oniguruma-dev \
+    linux-headers \
     mysql-client \
     shadow
 
@@ -21,10 +22,14 @@ RUN docker-php-ext-install \
     bcmath \
     gd \
     zip \
+    sockets \
     opcache
 
-# Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
+# Redis extension (pecl needs build tools on alpine; drop them after compiling)
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

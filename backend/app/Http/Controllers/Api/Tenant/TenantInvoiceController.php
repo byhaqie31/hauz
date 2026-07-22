@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\InvoiceResource;
+use App\Http\Resources\InvoiceWithRefsResource;
+use App\Http\Resources\PaymentResource;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
@@ -13,16 +15,19 @@ use Illuminate\Http\Request;
 
 class TenantInvoiceController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $invoices = Invoice::with(['payments', 'agreement.unit.property'])
-            ->whereHas('agreement', fn ($q) =>
-                $q->where('tenant_id', $request->user()->id)
-            )
-            ->orderBy('due_date', 'desc')
-            ->get();
+        $query = Invoice::whereHas('agreement', fn ($q) =>
+            $q->where('tenant_id', $request->user()->id)
+        )->orderBy('due_date', 'desc');
 
-        return response()->json($invoices);
+        if ($request->filled('expand')) {
+            return InvoiceWithRefsResource::collection(
+                $query->with(['agreement.unit.property.coOwners', 'agreement.tenant', 'payments'])->get()
+            );
+        }
+
+        return InvoiceResource::collection($query->get());
     }
 
     /** Simulate FPX pay → paid round-trip (mock-compatible). Phase 3: wire to Billplz. */
@@ -55,8 +60,8 @@ class TenantInvoiceController extends Controller
         $invoice->update(['status' => InvoiceStatus::PAID]);
 
         return response()->json([
-            'payment' => $payment,
-            'invoice' => $invoice->fresh(),
+            'payment' => (new PaymentResource($payment))->resolve(),
+            'invoice' => (new InvoiceResource($invoice->fresh()))->resolve(),
         ], 201);
     }
 }

@@ -35,7 +35,16 @@ class UserFactory extends Factory
 
     public function tenant(): static
     {
-        return $this->state(fn () => ['role' => UserRole::TENANT]);
+        return $this->state(fn () => ['role' => UserRole::TENANT, 'status' => 'active']);
+    }
+
+    public function invitedTenant(): static
+    {
+        return $this->state(fn () => [
+            'role'       => UserRole::TENANT,
+            'status'     => 'invited',
+            'invited_at' => now(),
+        ]);
     }
 
     public function unverified(): static

@@ -3,70 +3,71 @@
 namespace App\Http\Controllers\Api\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUnitRequest;
+use App\Http\Requests\UpdateUnitRequest;
+use App\Http\Resources\UnitResource;
 use App\Models\Property;
 use App\Models\Unit;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UnitController extends Controller
 {
-    public function index(Request $request, Property $property): JsonResponse
+    /** GET /units — every unit across the owner's properties. */
+    public function all(Request $request)
     {
-        abort_if($property->owner_id !== $request->user()->id, 403);
-
-        return response()->json($property->units);
+        return UnitResource::collection(
+            Unit::whereHas('property', fn ($q) =>
+                $q->where('owner_id', $request->user()->id)
+            )->latest()->get()
+        );
     }
 
-    public function store(Request $request, Property $property): JsonResponse
+    /** GET /properties/{property}/units */
+    public function index(Request $request, Property $property)
     {
         abort_if($property->owner_id !== $request->user()->id, 403);
 
-        $data = $request->validate([
-            'label'     => 'required|string|max:255',
-            'bedrooms'  => 'nullable|integer|min:0|max:20',
-            'bathrooms' => 'nullable|integer|min:0|max:20',
-            'sqft'      => 'nullable|integer|min:1',
-            'status'    => 'nullable|in:vacant,occupied,maintenance',
-        ]);
-
-        $unit = $property->units()->create($data);
-
-        return response()->json($unit, 201);
+        return UnitResource::collection($property->units);
     }
 
-    public function show(Request $request, Property $property, Unit $unit): JsonResponse
+    /** POST /properties/{property}/units */
+    public function store(StoreUnitRequest $request, Property $property)
     {
         abort_if($property->owner_id !== $request->user()->id, 403);
-        abort_if($unit->property_id !== $property->id, 404);
 
-        return response()->json($unit);
+        $unit = $property->units()->create($request->toModelAttributes());
+
+        return (new UnitResource($unit))->response()->setStatusCode(201);
     }
 
-    public function update(Request $request, Property $property, Unit $unit): JsonResponse
+    /** GET /units/{unit} */
+    public function show(Request $request, Unit $unit)
     {
-        abort_if($property->owner_id !== $request->user()->id, 403);
-        abort_if($unit->property_id !== $property->id, 404);
+        $this->authorizeOwner($request, $unit);
 
-        $data = $request->validate([
-            'label'     => 'sometimes|string|max:255',
-            'bedrooms'  => 'nullable|integer|min:0|max:20',
-            'bathrooms' => 'nullable|integer|min:0|max:20',
-            'sqft'      => 'nullable|integer|min:1',
-            'status'    => 'sometimes|in:vacant,occupied,maintenance',
-        ]);
-
-        $unit->update($data);
-
-        return response()->json($unit);
+        return new UnitResource($unit);
     }
 
-    public function destroy(Request $request, Property $property, Unit $unit): JsonResponse
+    /** PATCH /units/{unit} */
+    public function update(UpdateUnitRequest $request, Unit $unit)
     {
-        abort_if($property->owner_id !== $request->user()->id, 403);
-        abort_if($unit->property_id !== $property->id, 404);
+        $this->authorizeOwner($request, $unit);
+        $unit->update($request->toModelAttributes());
 
+        return new UnitResource($unit);
+    }
+
+    /** DELETE /units/{unit} */
+    public function destroy(Request $request, Unit $unit)
+    {
+        $this->authorizeOwner($request, $unit);
         $unit->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function authorizeOwner(Request $request, Unit $unit): void
+    {
+        abort_if($unit->property->owner_id !== $request->user()->id, 403);
     }
 }

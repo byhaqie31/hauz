@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api\Owner;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RecordPaymentRequest;
+use App\Http\Requests\UpdateInvoiceStatusRequest;
+use App\Http\Resources\InvoiceResource;
+use App\Http\Resources\InvoiceWithRefsResource;
+use App\Http\Resources\PaymentResource;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
@@ -13,12 +17,11 @@ use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $query = Invoice::with(['agreement.unit.property', 'agreement.tenant', 'payments'])
-            ->whereHas('agreement.unit.property', fn ($q) =>
-                $q->where('owner_id', $request->user()->id)
-            );
+        $query = Invoice::whereHas('agreement.unit.property', fn ($q) =>
+            $q->where('owner_id', $request->user()->id)
+        );
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -30,27 +33,37 @@ class InvoiceController extends Controller
             $query->whereMonth('due_date', $request->month);
         }
 
-        return response()->json($query->orderBy('due_date', 'desc')->get());
+        $query->orderBy('due_date', 'desc');
+
+        if ($request->filled('expand')) {
+            return InvoiceWithRefsResource::collection(
+                $query->with(['agreement.unit.property.coOwners', 'agreement.tenant', 'payments'])->get()
+            );
+        }
+
+        return InvoiceResource::collection($query->get());
     }
 
-    public function show(Request $request, Invoice $invoice): JsonResponse
+    public function show(Request $request, Invoice $invoice)
     {
         $this->authorizeOwner($request, $invoice);
 
-        return response()->json($invoice->load(['agreement.unit.property', 'agreement.tenant', 'payments']));
+        if ($request->filled('expand')) {
+            $invoice->load(['agreement.unit.property.coOwners', 'agreement.tenant', 'payments']);
+
+            return new InvoiceWithRefsResource($invoice);
+        }
+
+        return new InvoiceResource($invoice);
     }
 
-    public function updateStatus(Request $request, Invoice $invoice): JsonResponse
+    public function updateStatus(UpdateInvoiceStatusRequest $request, Invoice $invoice)
     {
         $this->authorizeOwner($request, $invoice);
 
-        $data = $request->validate([
-            'status' => 'required|in:pending,paid,overdue,cancelled',
-        ]);
+        $invoice->update($request->validated());
 
-        $invoice->update($data);
-
-        return response()->json($invoice);
+        return new InvoiceResource($invoice);
     }
 
     public function send(Request $request, Invoice $invoice): JsonResponse
@@ -58,21 +71,14 @@ class InvoiceController extends Controller
         $this->authorizeOwner($request, $invoice);
 
         // TODO Phase 4: dispatch InvoiceSentNotification via email + WhatsApp
-        return response()->json(['sent_at' => now()->toISOString()]);
+        return response()->json(['sentAt' => now()->toISOString()]);
     }
 
-    public function recordPayment(Request $request, Invoice $invoice): JsonResponse
+    public function recordPayment(RecordPaymentRequest $request, Invoice $invoice): JsonResponse
     {
         $this->authorizeOwner($request, $invoice);
 
-        $data = $request->validate([
-            'amount_cents' => 'required|integer|min:1',
-            'method'       => 'required|in:fpx,card,cash,transfer',
-            'paid_at'      => 'required|date',
-            'reference'    => 'nullable|string|max:255',
-        ]);
-
-        $payment = Payment::create(array_merge($data, [
+        $payment = Payment::create(array_merge($request->toModelAttributes(), [
             'invoice_id' => $invoice->id,
             'status'     => PaymentStatus::SUCCESSFUL,
         ]));
@@ -80,8 +86,8 @@ class InvoiceController extends Controller
         $invoice->update(['status' => InvoiceStatus::PAID]);
 
         return response()->json([
-            'payment' => $payment,
-            'invoice' => $invoice,
+            'payment' => (new PaymentResource($payment))->resolve(),
+            'invoice' => (new InvoiceResource($invoice->fresh()))->resolve(),
         ], 201);
     }
 
