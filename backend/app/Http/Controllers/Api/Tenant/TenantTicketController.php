@@ -4,31 +4,43 @@ namespace App\Http\Controllers\Api\Tenant;
 
 use App\Enums\ReporterRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTicketCommentRequest;
+use App\Http\Resources\TicketCommentResource;
+use App\Http\Resources\TicketResource;
+use App\Http\Resources\TicketWithRefsResource;
 use App\Models\Agreement;
 use App\Models\Ticket;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TenantTicketController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $tickets = Ticket::with(['unit.property', 'comments.author'])
-            ->where('reporter_id', $request->user()->id)
-            ->latest()
-            ->get();
+        $query = Ticket::where('reporter_id', $request->user()->id)->latest();
 
-        return response()->json($tickets);
+        if ($request->filled('expand')) {
+            return TicketWithRefsResource::collection(
+                $query->with(['unit.property.coOwners', 'reporter', 'comments'])->get()
+            );
+        }
+
+        return TicketResource::collection($query->get());
     }
 
-    public function show(Request $request, Ticket $ticket): JsonResponse
+    public function show(Request $request, Ticket $ticket)
     {
         abort_if($ticket->reporter_id !== $request->user()->id, 403);
 
-        return response()->json($ticket->load(['unit.property', 'comments.author']));
+        if ($request->filled('expand')) {
+            $ticket->load(['unit.property.coOwners', 'reporter', 'comments']);
+
+            return new TicketWithRefsResource($ticket);
+        }
+
+        return new TicketResource($ticket);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $data = $request->validate([
             'category'    => 'required|in:plumbing,electrical,appliance,structural,pest,other',
@@ -37,7 +49,8 @@ class TenantTicketController extends Controller
             'description' => 'required|string',
         ]);
 
-        // Derive the unit from the tenant's active agreement
+        // Derive the unit from the tenant's active agreement. unitId/reporterId/reporterRole in the
+        // body are ignored — never trusted from the client.
         $agreement = Agreement::where('tenant_id', $request->user()->id)
             ->where('status', 'active')
             ->latest()
@@ -51,23 +64,19 @@ class TenantTicketController extends Controller
             'reporter_role' => ReporterRole::TENANT,
         ]));
 
-        return response()->json($ticket->load(['unit.property', 'reporter']), 201);
+        return (new TicketResource($ticket))->response()->setStatusCode(201);
     }
 
-    public function addComment(Request $request, Ticket $ticket): JsonResponse
+    public function addComment(StoreTicketCommentRequest $request, Ticket $ticket)
     {
         abort_if($ticket->reporter_id !== $request->user()->id, 403);
-
-        $data = $request->validate([
-            'body' => 'required|string',
-        ]);
 
         $comment = $ticket->comments()->create([
             'author_id'   => $request->user()->id,
             'author_role' => ReporterRole::TENANT,
-            'body'        => $data['body'],
+            'body'        => $request->validated('body'),
         ]);
 
-        return response()->json($comment->load('author'), 201);
+        return (new TicketCommentResource($comment))->response()->setStatusCode(201);
     }
 }

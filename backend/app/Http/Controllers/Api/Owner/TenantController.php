@@ -4,77 +4,73 @@ namespace App\Http\Controllers\Api\Owner;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InviteTenantRequest;
+use App\Http\Requests\UpdateTenantRequest;
+use App\Http\Resources\TenantResource;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TenantController extends Controller
 {
     /**
-     * List all tenants who have (or had) an agreement on a unit owned by this owner.
-     * Until Global Scopes land, we join through agreements → units → properties.
+     * List all tenants visible to this owner: invited directly by them, or
+     * carrying (or having carried) an agreement on a unit they own.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
+        $ownerId = $request->user()->id;
+
         $tenants = User::where('role', UserRole::TENANT)
-            ->whereHas('agreements.unit.property', fn ($q) =>
-                $q->where('owner_id', $request->user()->id)
+            ->where(fn ($q) => $q
+                ->where('invited_by', $ownerId)
+                ->orWhereHas('agreements.unit.property', fn ($qq) =>
+                    $qq->where('owner_id', $ownerId)
+                )
             )
             ->latest()
             ->get();
 
-        return response()->json($tenants);
+        return TenantResource::collection($tenants);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(InviteTenantRequest $request)
     {
-        $data = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
-            'phone' => 'required|string|max:30',
-        ]);
+        return $this->invite($request);
+    }
 
-        $tenant = User::create(array_merge($data, [
+    public function invite(InviteTenantRequest $request)
+    {
+        $tenant = User::create(array_merge($request->validated(), [
             'role'       => UserRole::TENANT,
+            'status'     => 'invited',
             'invited_at' => now(),
+            'invited_by' => $request->user()->id,
         ]));
 
-        return response()->json($tenant, 201);
+        // TODO Phase 3: dispatch magic-link invite notification
+
+        return (new TenantResource($tenant))->response()->setStatusCode(201);
     }
 
-    public function show(Request $request, User $tenant): JsonResponse
+    public function show(Request $request, User $tenant)
     {
         abort_if($tenant->role !== UserRole::TENANT, 404);
         $this->authorizeTenantAccess($request, $tenant);
 
-        return response()->json($tenant);
+        return new TenantResource($tenant);
     }
 
-    public function update(Request $request, User $tenant): JsonResponse
+    public function update(UpdateTenantRequest $request, User $tenant)
     {
         abort_if($tenant->role !== UserRole::TENANT, 404);
         $this->authorizeTenantAccess($request, $tenant);
 
-        $data = $request->validate([
-            'name'              => 'sometimes|string|max:255',
-            'phone'             => 'sometimes|string|max:30',
-            'status'            => 'sometimes|in:invited,active,notice_given,moved_out',
-            'personal'          => 'nullable|array',
-            'emergency_contact' => 'nullable|array',
-        ]);
+        $tenant->update($request->toModelAttributes());
 
-        // Map frontend field names to DB column names
-        if (isset($data['personal'])) {
-            $data['personal_info'] = $data['personal'];
-            unset($data['personal']);
-        }
-
-        $tenant->update($data);
-
-        return response()->json($tenant);
+        return new TenantResource($tenant);
     }
 
-    public function destroy(Request $request, User $tenant): JsonResponse
+    public function destroy(Request $request, User $tenant)
     {
         abort_if($tenant->role !== UserRole::TENANT, 404);
         $this->authorizeTenantAccess($request, $tenant);
@@ -84,14 +80,12 @@ class TenantController extends Controller
         return response()->json(null, 204);
     }
 
-    public function invite(Request $request, User $tenant): JsonResponse
-    {
-        // TODO Phase 2: dispatch TenantInviteNotification (magic link)
-        return response()->json(['message' => 'Invite feature coming in Phase 2.'], 501);
-    }
-
     private function authorizeTenantAccess(Request $request, User $tenant): void
     {
+        if ($tenant->invited_by === $request->user()->id) {
+            return;
+        }
+
         $isOwner = $tenant->agreements()
             ->whereHas('unit.property', fn ($q) =>
                 $q->where('owner_id', $request->user()->id)

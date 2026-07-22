@@ -5,54 +5,57 @@ namespace App\Http\Controllers\Api\Owner;
 use App\Enums\ReporterRole;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\UpdateTicketStatusRequest;
+use App\Http\Resources\TicketResource;
+use App\Http\Resources\TicketWithRefsResource;
 use App\Models\Ticket;
 use App\Models\Unit;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $tickets = Ticket::with(['unit.property', 'reporter', 'comments.author'])
-            ->whereHas('unit.property', fn ($q) =>
-                $q->where('owner_id', $request->user()->id)
-            )
-            ->latest()
-            ->get();
+        $query = Ticket::whereHas('unit.property', fn ($q) =>
+            $q->where('owner_id', $request->user()->id)
+        )->latest();
 
-        return response()->json($tickets);
+        if ($request->filled('expand')) {
+            return TicketWithRefsResource::collection(
+                $query->with(['unit.property.coOwners', 'reporter', 'comments'])->get()
+            );
+        }
+
+        return TicketResource::collection($query->get());
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreTicketRequest $request)
     {
-        $data = $request->validate([
-            'unit_id'     => 'required|uuid|exists:units,id',
-            'category'    => 'required|in:plumbing,electrical,appliance,structural,pest,other',
-            'priority'    => 'required|in:low,medium,high,urgent',
-            'title'       => 'required|string|max:100',
-            'description' => 'required|string',
-        ]);
-
-        $unit = Unit::findOrFail($data['unit_id']);
+        $unit = Unit::findOrFail($request->validated('unitId'));
         abort_if($unit->property->owner_id !== $request->user()->id, 403);
 
-        $ticket = Ticket::create(array_merge($data, [
+        $ticket = Ticket::create(array_merge($request->toModelAttributes(), [
             'reporter_id'   => $request->user()->id,
             'reporter_role' => ReporterRole::OWNER,
         ]));
 
-        return response()->json($ticket->load(['unit.property', 'reporter']), 201);
+        return (new TicketResource($ticket))->response()->setStatusCode(201);
     }
 
-    public function show(Request $request, Ticket $ticket): JsonResponse
+    public function show(Request $request, Ticket $ticket)
     {
         $this->authorizeOwner($request, $ticket);
 
-        return response()->json($ticket->load(['unit.property', 'reporter', 'comments.author']));
+        if ($request->filled('expand')) {
+            $ticket->load(['unit.property.coOwners', 'reporter', 'comments']);
+            return new TicketWithRefsResource($ticket);
+        }
+
+        return new TicketResource($ticket);
     }
 
-    public function update(Request $request, Ticket $ticket): JsonResponse
+    public function update(Request $request, Ticket $ticket)
     {
         $this->authorizeOwner($request, $ticket);
 
@@ -65,10 +68,10 @@ class TicketController extends Controller
 
         $ticket->update($data);
 
-        return response()->json($ticket->load(['unit.property', 'reporter', 'comments.author']));
+        return new TicketResource($ticket);
     }
 
-    public function destroy(Request $request, Ticket $ticket): JsonResponse
+    public function destroy(Request $request, Ticket $ticket)
     {
         $this->authorizeOwner($request, $ticket);
 
@@ -77,15 +80,11 @@ class TicketController extends Controller
         return response()->json(null, 204);
     }
 
-    public function updateStatus(Request $request, Ticket $ticket): JsonResponse
+    public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket)
     {
         $this->authorizeOwner($request, $ticket);
 
-        $data = $request->validate([
-            'status' => 'required|in:new,in_progress,resolved,reopened',
-        ]);
-
-        $next = TicketStatus::from($data['status']);
+        $next = TicketStatus::from($request->validated('status'));
 
         if (! $ticket->canTransitionTo($next)) {
             return response()->json([
@@ -98,7 +97,7 @@ class TicketController extends Controller
             'resolved_at' => $next === TicketStatus::RESOLVED ? now() : $ticket->resolved_at,
         ]);
 
-        return response()->json($ticket);
+        return new TicketResource($ticket);
     }
 
     private function authorizeOwner(Request $request, Ticket $ticket): void

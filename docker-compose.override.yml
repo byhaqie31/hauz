@@ -31,6 +31,10 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
     command: php artisan serve --host=0.0.0.0 --port=9000
+    # Publish the dev server directly — nginx expects php-fpm and can't proxy
+    # `artisan serve`, so local API testing hits this port instead.
+    ports:
+      - "${BACKEND_DEV_PORT:-8000}:9000"
 
   queue-worker:
     build:
@@ -51,6 +55,24 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+
+  # ── phpMyAdmin (local-only DB browser) ─────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-roofly}-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=${DB_ROOT_PASSWORD:-rootsecret}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - roofly
 
 volumes:
   frontend_node_modules:

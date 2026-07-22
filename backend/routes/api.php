@@ -49,12 +49,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('properties/{property}/co-owners',           [\App\Http\Controllers\Api\Owner\PropertyCoOwnerController::class, 'sync']);
         Route::delete('properties/{property}/co-owners/{coOwner}', [\App\Http\Controllers\Api\Owner\PropertyCoOwnerController::class, 'destroy']);
 
-        // Units (nested under properties)
-        Route::apiResource('properties.units', \App\Http\Controllers\Api\Owner\UnitController::class);
+        // Units — nested for list/create, flat for item ops (matches useUnits.ts)
+        Route::get('units',                        [\App\Http\Controllers\Api\Owner\UnitController::class, 'all']);
+        Route::get('properties/{property}/units',  [\App\Http\Controllers\Api\Owner\UnitController::class, 'index']);
+        Route::post('properties/{property}/units', [\App\Http\Controllers\Api\Owner\UnitController::class, 'store']);
+        Route::get('units/{unit}',                 [\App\Http\Controllers\Api\Owner\UnitController::class, 'show']);
+        Route::patch('units/{unit}',               [\App\Http\Controllers\Api\Owner\UnitController::class, 'update']);
+        Route::delete('units/{unit}',              [\App\Http\Controllers\Api\Owner\UnitController::class, 'destroy']);
 
         // Tenants
+        Route::post('tenants/invite', [\App\Http\Controllers\Api\Owner\TenantController::class, 'invite']);
         Route::apiResource('tenants', \App\Http\Controllers\Api\Owner\TenantController::class);
-        Route::post('tenants/{tenant}/invite',         [\App\Http\Controllers\Api\Owner\TenantController::class, 'invite']);
 
         // Agreements
         Route::apiResource('agreements', \App\Http\Controllers\Api\Owner\AgreementController::class);
@@ -62,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Invoices
         Route::get('invoices',                         [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'index']);
         Route::get('invoices/{invoice}',               [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'show']);
+        Route::patch('invoices/{invoice}',             [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'updateStatus']);
         Route::patch('invoices/{invoice}/status',      [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'updateStatus']);
         Route::post('invoices/{invoice}/send',         [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'send']);
         Route::post('invoices/{invoice}/payments',     [\App\Http\Controllers\Api\Owner\InvoiceController::class, 'recordPayment']);
