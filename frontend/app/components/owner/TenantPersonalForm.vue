@@ -30,10 +30,11 @@ const initialValues = {
   nationality: p.nationality ?? "",
 };
 
-const { defineField, handleSubmit, errors } = useForm({
+const { defineField, handleSubmit, errors, setErrors } = useForm({
   validationSchema: toTypedSchema(tenantPersonalSchema),
   initialValues,
 });
+const { toFieldErrors } = useApiError();
 
 const [icNumber] = defineField("icNumber");
 const [dateOfBirth] = defineField("dateOfBirth");
@@ -57,6 +58,13 @@ const onSubmit = handleSubmit(async (values) => {
     });
     show(t("common.savedToast"), "success");
     emit("saved", updated);
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

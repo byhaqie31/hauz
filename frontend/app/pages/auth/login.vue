@@ -20,11 +20,15 @@ const onSubmit = async () => {
     error.value = t("validation.required");
     return;
   }
-  await auth.login(email.value, password.value);
-  if (auth.isTenant) {
-    await navigateTo("/tenant");
-  } else {
-    await navigateTo("/owner");
+  try {
+    await auth.login(email.value, password.value);
+    if (auth.isTenant) {
+      await navigateTo("/tenant");
+    } else {
+      await navigateTo("/owner");
+    }
+  } catch {
+    error.value = t("auth.invalidCredentials");
   }
 };
 </script>

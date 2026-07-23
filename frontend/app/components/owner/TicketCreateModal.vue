@@ -39,11 +39,12 @@ const initialValues: TicketInput = {
   description: "",
 };
 
-const { defineField, handleSubmit, errors, resetForm, setFieldValue } =
+const { defineField, handleSubmit, errors, resetForm, setFieldValue, setErrors } =
   useForm<TicketInput>({
     validationSchema: toTypedSchema(ticketCreateFormSchema),
     initialValues,
   });
+const { toFieldErrors } = useApiError();
 
 const [unitId] = defineField("unitId");
 const [reporterId] = defineField("reporterId");
@@ -100,6 +101,13 @@ const onSubmit = handleSubmit(async (values) => {
     emit("created", created);
     emit("update:open", false);
     show(t("owner.tickets.create.createdToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

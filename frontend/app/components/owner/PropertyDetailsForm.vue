@@ -35,10 +35,11 @@ const initialValues = {
   furnishing: props.property.furnishing,
 };
 
-const { defineField, handleSubmit, errors } = useForm({
+const { defineField, handleSubmit, errors, setErrors } = useForm({
   validationSchema: toTypedSchema(propertyDetailsFormSchema),
   initialValues,
 });
+const { toFieldErrors } = useApiError();
 
 const [name] = defineField("name");
 const [internalLabel] = defineField("internalLabel");
@@ -106,6 +107,13 @@ const onSubmit = handleSubmit(async (values) => {
     });
     show(t("common.savedToast"), "success");
     emit("saved", updated);
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }
