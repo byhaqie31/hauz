@@ -24,10 +24,11 @@ const initialValues = {
   businessName: props.account.profile.businessName ?? "",
 };
 
-const { defineField, handleSubmit, errors } = useForm({
+const { defineField, handleSubmit, errors, setErrors } = useForm({
   validationSchema: toTypedSchema(ownerProfileFormSchema),
   initialValues,
 });
+const { toFieldErrors } = useApiError();
 
 const [name] = defineField("name");
 const [phone] = defineField("phone");
@@ -43,6 +44,13 @@ const onSubmit = handleSubmit(async (values) => {
     });
     emit("saved", updated);
     show(t("common.savedToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

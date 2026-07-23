@@ -21,10 +21,11 @@ const submitting = ref(false);
 
 const initialValues: TenantInput = { name: "", email: "", phone: "" };
 
-const { defineField, handleSubmit, errors, resetForm } = useForm<TenantInput>({
+const { defineField, handleSubmit, errors, resetForm, setErrors } = useForm<TenantInput>({
   validationSchema: toTypedSchema(tenantInputSchema),
   initialValues,
 });
+const { toFieldErrors } = useApiError();
 
 const [name] = defineField("name");
 const [email] = defineField("email");
@@ -37,6 +38,13 @@ const onSubmit = handleSubmit(async (values) => {
     show(t("owner.tenants.invitedToast"), "success");
     emit("invited", created);
     emit("update:open", false);
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

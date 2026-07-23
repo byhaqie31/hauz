@@ -13,33 +13,28 @@ export interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   loading: boolean;
+  /** False until the boot `fetchMe()` has settled — the route guard waits on this. */
+  authReady: boolean;
+}
+
+interface RegisterPayload {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
 }
 
 /**
- * Phase 1 auth store. Backend wiring lands in the Laravel install commit.
- * Until then, login/register are mocked + the user is persisted to
- * localStorage so refreshes don't drop the session. When Sanctum lands,
- * `restoreSession` will swap to a `/auth/me` call.
+ * Real Sanctum SPA cookie auth. The httpOnly session cookie is the single
+ * source of truth — no localStorage. `login`/`register` prime the CSRF
+ * cookie then POST; `fetchMe` hydrates on boot; the route guard waits on
+ * `authReady`.
  */
-const STORAGE_KEY = "roofly_auth";
-
-const persist = (user: AuthUser | null) => {
-  if (!import.meta.client) return;
-  try {
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch {
-    // Quota / private-mode etc — non-fatal in mock-mode.
-  }
-};
-
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     user: null,
     loading: false,
+    authReady: false,
   }),
 
   getters: {
@@ -50,75 +45,64 @@ export const useAuthStore = defineStore("auth", {
   },
 
   actions: {
-    /** TEMP: mock until backend is up. */
-    async login(email: string, _password: string) {
+    async login(email: string, password: string) {
       this.loading = true;
-      await new Promise((r) => setTimeout(r, 300));
-      const role: UserRole = email.startsWith("tenant")
-        ? "tenant"
-        : email.startsWith("admin")
-          ? "admin"
-          : "owner";
-      // Mock tenants sign in as the seeded "Aminah" tenant so the tenant
-      // shell has a real agreement, invoices, and issues to render. Keep
-      // this id in sync with `useTenantSession`'s demo binding. When Sanctum
-      // lands, the auth user's id *is* the tenant id and this drops away.
-      this.user =
-        role === "tenant"
-          ? {
-              id: "t-aminah",
-              name: "Aminah Binti Yusof",
-              email,
-              phone: "+60 12-345 6789",
-              role,
-            }
-          : {
-              id: "stub-" + role,
-              name: role === "admin" ? "Admin" : "Cik Aminah",
-              email,
-              phone: null,
-              role,
-            };
-      persist(this.user);
-      this.loading = false;
-    },
-
-    async register(payload: { name: string; email: string; phone: string; password: string }) {
-      this.loading = true;
-      await new Promise((r) => setTimeout(r, 300));
-      this.user = {
-        id: "stub-owner",
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone,
-        role: "owner",
-      };
-      persist(this.user);
-      this.loading = false;
-    },
-
-    async logout() {
-      this.user = null;
-      persist(null);
-    },
-
-    /**
-     * Hydrate auth state from localStorage on client boot. Run once via
-     * the `.client` plugin so SSR is unaffected (server has no localStorage).
-     */
-    restoreSession() {
-      if (!import.meta.client) return;
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
       try {
-        this.user = JSON.parse(raw) as AuthUser;
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
+        const { request } = useApi();
+        // Prime the CSRF cookie before the stateful POST.
+        await request("/../sanctum/csrf-cookie");
+        const res = await request<{ user: AuthUser }>("/auth/login", {
+          method: "POST",
+          body: { email, password },
+        });
+        this.user = res.user;
+      } finally {
+        this.loading = false;
       }
     },
 
+    async register(payload: RegisterPayload) {
+      this.loading = true;
+      try {
+        const { request } = useApi();
+        await request("/../sanctum/csrf-cookie");
+        const res = await request<{ user: AuthUser }>("/auth/register", {
+          method: "POST",
+          body: {
+            ...payload,
+            password_confirmation: payload.password,
+          },
+        });
+        this.user = res.user;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async logout() {
+      try {
+        const { request } = useApi();
+        await request("/auth/logout", { method: "POST" });
+      } catch {
+        // Even if the server call fails, drop local state.
+      }
+      this.user = null;
+    },
+
+    /**
+     * Boot hydration: ask the server who we are. A 401 is the expected
+     * "not logged in" case, not an error to surface. Always marks the
+     * session ready so the route guard can proceed.
+     */
     async fetchMe() {
-      // Real impl will call /api/auth/me when backend exists.
+      try {
+        const { request } = useApi();
+        this.user = await request<AuthUser>("/auth/me");
+      } catch {
+        this.user = null;
+      } finally {
+        this.authReady = true;
+      }
     },
   },
 });

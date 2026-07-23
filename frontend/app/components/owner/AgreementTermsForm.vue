@@ -60,11 +60,12 @@ const buildInitialValues = (): FormValues => {
   };
 };
 
-const { defineField, handleSubmit, errors, resetForm, setFieldValue } =
+const { defineField, handleSubmit, errors, resetForm, setFieldValue, setErrors } =
   useForm<FormValues>({
     validationSchema: toTypedSchema(agreementFormSchema),
     initialValues: buildInitialValues(),
   });
+const { toFieldErrors } = useApiError();
 
 const [unitId] = defineField("unitId");
 const [tenantId] = defineField("tenantId");
@@ -145,6 +146,13 @@ const onSubmit = handleSubmit(async (values) => {
       show(t("owner.agreements.createdToast"), "success");
       emit("saved", created);
     }
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

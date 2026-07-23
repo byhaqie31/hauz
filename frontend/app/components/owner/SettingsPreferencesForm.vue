@@ -10,6 +10,7 @@ const emit = defineEmits<{ saved: [account: OwnerAccount] }>();
 const { t, setLocale } = useI18n();
 const { setTheme } = useTheme();
 const { show } = useToast();
+const { toFieldErrors } = useApiError();
 const submitting = ref(false);
 
 const localeChoice = ref<Locale>(props.account.preferences.locale);
@@ -50,6 +51,9 @@ const onSubmit = async () => {
     });
     emit("saved", updated);
     show(t("common.savedToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    show(fieldErrors ? Object.values(fieldErrors)[0]! : t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

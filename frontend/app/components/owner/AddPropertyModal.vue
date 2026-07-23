@@ -31,12 +31,13 @@ const initialValues: PropertyInput = {
   type: "condo",
 };
 
-const { defineField, handleSubmit, errors, resetForm } = useForm<PropertyInput>(
+const { defineField, handleSubmit, errors, resetForm, setErrors } = useForm<PropertyInput>(
   {
     validationSchema: toTypedSchema(propertyInputSchema),
     initialValues,
   },
 );
+const { toFieldErrors } = useApiError();
 
 const [name] = defineField("name");
 const [address] = defineField("address");
@@ -61,6 +62,13 @@ const onSubmit = handleSubmit(async (values) => {
     emit("created", created);
     emit("update:open", false);
     show(t("owner.properties.addModal.createdToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

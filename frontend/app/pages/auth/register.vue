@@ -8,6 +8,7 @@ definePageMeta({ layout: "auth" });
 const { t } = useI18n();
 useHead({ title: () => t("auth.register") });
 
+const { toFieldErrors } = useApiError();
 const auth = useAuthStore();
 const name = ref("");
 const email = ref("");
@@ -25,13 +26,18 @@ const onSubmit = async () => {
     error.value = t("validation.minLength", { min: 8 });
     return;
   }
-  await auth.register({
-    name: name.value,
-    email: email.value,
-    phone: phone.value,
-    password: password.value,
-  });
-  await navigateTo("/owner");
+  try {
+    await auth.register({
+      name: name.value,
+      email: email.value,
+      phone: phone.value,
+      password: password.value,
+    });
+    await navigateTo("/owner");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    error.value = fieldErrors ? Object.values(fieldErrors)[0]! : t("auth.invalidCredentials");
+  }
 };
 </script>
 
