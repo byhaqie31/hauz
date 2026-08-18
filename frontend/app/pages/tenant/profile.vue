@@ -43,7 +43,7 @@ const [ecRelationship] = defineField("ecRelationship");
 
 const load = async () => {
   if (!tenantId.value) return;
-  tenant.value = await useTenants().get(tenantId.value);
+  tenant.value = await useTenants().getTenant(tenantId.value);
 };
 
 onMounted(async () => {

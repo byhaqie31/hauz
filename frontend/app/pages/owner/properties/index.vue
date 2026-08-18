@@ -17,7 +17,7 @@ const loading = ref(true);
 
 onMounted(async () => {
   try {
-    properties.value = await useProperties().list();
+    properties.value = await useProperties().getProperties();
   } finally {
     loading.value = false;
   }

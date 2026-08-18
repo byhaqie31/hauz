@@ -112,9 +112,9 @@ const onPropertyChange = (newPropertyId: string) => {
 
 onMounted(async () => {
   [allProperties.value, allUnits.value, allTenants.value] = await Promise.all([
-    useProperties().list(),
-    useUnits().list(),
-    useTenants().list(),
+    useProperties().getProperties(),
+    useUnits().getUnits(),
+    useTenants().getTenants(),
   ]);
   resetForm({ values: buildInitialValues() });
   if (props.agreement) {

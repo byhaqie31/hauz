@@ -32,7 +32,7 @@ const activeTab = ref<string>("overview");
 const load = async () => {
   loading.value = true;
   try {
-    const all = await useAgreements().listWithRefs();
+    const all = await useAgreements().getAgreementsWithRefs();
     row.value = all.find((r) => r.agreement.id === route.params.id) ?? null;
   } finally {
     loading.value = false;

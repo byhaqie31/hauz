@@ -45,13 +45,13 @@ const hydrate = (t: Ticket): TicketWithRefs => {
 export const useTickets = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Ticket[]> => {
+  const getTickets = async (): Promise<Ticket[]> => {
     if (useMock) return structuredClone(ticketsMock);
     const { request } = useApi();
     return request<Ticket[]>("/tickets");
   };
 
-  const listWithRefs = async (): Promise<TicketWithRefs[]> => {
+  const getTicketsWithRefs = async (): Promise<TicketWithRefs[]> => {
     if (useMock) return ticketsMock.map(hydrate);
     const { request } = useApi();
     return request<TicketWithRefs[]>(
@@ -59,7 +59,7 @@ export const useTickets = () => {
     );
   };
 
-  const get = async (id: string): Promise<Ticket | null> => {
+  const getTicket = async (id: string): Promise<Ticket | null> => {
     if (useMock) {
       const found = ticketsMock.find((t) => t.id === id);
       return found ? structuredClone(found) : null;
@@ -72,7 +72,7 @@ export const useTickets = () => {
    * Issues a tenant reported themselves (tenant-shell scope). Backend swap
    * hits `/me/tickets`.
    */
-  const listForTenant = async (
+  const getTicketsForTenant = async (
     tenantId: string,
   ): Promise<TicketWithRefs[]> => {
     if (useMock) {
@@ -86,7 +86,7 @@ export const useTickets = () => {
     );
   };
 
-  const getWithRefs = async (id: string): Promise<TicketWithRefs | null> => {
+  const getTicketWithRefs = async (id: string): Promise<TicketWithRefs | null> => {
     if (useMock) {
       const found = ticketsMock.find((t) => t.id === id);
       return found ? hydrate(found) : null;
@@ -165,11 +165,11 @@ export const useTickets = () => {
   };
 
   return {
-    list,
-    listWithRefs,
-    get,
-    getWithRefs,
-    listForTenant,
+    getTickets,
+    getTicketsWithRefs,
+    getTicket,
+    getTicketWithRefs,
+    getTicketsForTenant,
     create,
     transitionStatus,
     addComment,

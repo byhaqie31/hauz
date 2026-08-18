@@ -34,7 +34,7 @@ const activeTab = ref<string>("overview");
 
 onMounted(async () => {
   try {
-    property.value = await useProperties().get(route.params.id as string);
+    property.value = await useProperties().getProperty(route.params.id as string);
   } finally {
     loading.value = false;
   }

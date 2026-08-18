@@ -22,7 +22,7 @@ const showModal = ref(false);
 
 const refresh = async () => {
   if (tenantId.value) {
-    rows.value = await useInvoices().listForTenant(tenantId.value);
+    rows.value = await useInvoices().getInvoicesForTenant(tenantId.value);
   }
 };
 

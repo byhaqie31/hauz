@@ -38,7 +38,7 @@ const tabOptions = computed(() => [
 
 onMounted(async () => {
   try {
-    tenant.value = await useTenants().get(route.params.id as string);
+    tenant.value = await useTenants().getTenant(route.params.id as string);
   } finally {
     loading.value = false;
   }

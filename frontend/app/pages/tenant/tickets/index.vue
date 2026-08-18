@@ -21,7 +21,7 @@ const showReport = ref(false);
 
 const refresh = async () => {
   if (!tenantId.value) return;
-  rows.value = await useTickets().listForTenant(tenantId.value);
+  rows.value = await useTickets().getTicketsForTenant(tenantId.value);
 };
 
 onMounted(async () => {
@@ -29,8 +29,8 @@ onMounted(async () => {
     const id = tenantId.value;
     if (!id) return;
     const [tk, agreement] = await Promise.all([
-      useTickets().listForTenant(id),
-      useAgreements().getActiveForTenant(id),
+      useTickets().getTicketsForTenant(id),
+      useAgreements().getActiveAgreementForTenant(id),
     ]);
     rows.value = tk;
     unitId.value = agreement?.unit?.id ?? null;

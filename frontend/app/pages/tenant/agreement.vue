@@ -21,7 +21,7 @@ const loading = ref(true);
 onMounted(async () => {
   try {
     if (tenantId.value) {
-      row.value = await useAgreements().getActiveForTenant(tenantId.value);
+      row.value = await useAgreements().getActiveAgreementForTenant(tenantId.value);
     }
   } finally {
     loading.value = false;

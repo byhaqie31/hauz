@@ -35,7 +35,7 @@ const newComment = ref("");
 const load = async () => {
   loading.value = true;
   try {
-    data.value = await useTickets().getWithRefs(route.params.id as string);
+    data.value = await useTickets().getTicketWithRefs(route.params.id as string);
   } finally {
     loading.value = false;
   }

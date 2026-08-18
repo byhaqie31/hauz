@@ -35,19 +35,19 @@ const hydrate = (a: Agreement): AgreementWithRefs => {
 export const useAgreements = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Agreement[]> => {
+  const getAgreements = async (): Promise<Agreement[]> => {
     if (useMock) return structuredClone(agreementsMock);
     const { request } = useApi();
     return request<Agreement[]>("/agreements");
   };
 
-  const listWithRefs = async (): Promise<AgreementWithRefs[]> => {
+  const getAgreementsWithRefs = async (): Promise<AgreementWithRefs[]> => {
     if (useMock) return agreementsMock.map(hydrate);
     const { request } = useApi();
     return request<AgreementWithRefs[]>("/agreements?expand=unit,property,tenant");
   };
 
-  const get = async (id: string): Promise<Agreement | null> => {
+  const getAgreement = async (id: string): Promise<Agreement | null> => {
     if (useMock) {
       const found = agreementsMock.find((a) => a.id === id);
       return found ? structuredClone(found) : null;
@@ -61,7 +61,7 @@ export const useAgreements = () => {
    * active agreement, then the most recent non-draft. Backend swap hits
    * `/me/agreement` — the server already knows who's asking.
    */
-  const getActiveForTenant = async (
+  const getActiveAgreementForTenant = async (
     tenantId: string,
   ): Promise<AgreementWithRefs | null> => {
     if (useMock) {
@@ -123,10 +123,10 @@ export const useAgreements = () => {
   };
 
   return {
-    list,
-    listWithRefs,
-    get,
-    getActiveForTenant,
+    getAgreements,
+    getAgreementsWithRefs,
+    getAgreement,
+    getActiveAgreementForTenant,
     create,
     update,
     remove,

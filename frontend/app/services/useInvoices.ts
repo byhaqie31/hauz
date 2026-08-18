@@ -44,19 +44,19 @@ const hydrate = (inv: Invoice): InvoiceWithRefs => {
 export const useInvoices = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Invoice[]> => {
+  const getInvoices = async (): Promise<Invoice[]> => {
     if (useMock) return structuredClone(invoicesMock);
     const { request } = useApi();
     return request<Invoice[]>("/invoices");
   };
 
-  const listWithRefs = async (): Promise<InvoiceWithRefs[]> => {
+  const getInvoicesWithRefs = async (): Promise<InvoiceWithRefs[]> => {
     if (useMock) return invoicesMock.map(hydrate);
     const { request } = useApi();
     return request<InvoiceWithRefs[]>("/invoices?expand=agreement,unit,property,tenant,payments");
   };
 
-  const get = async (id: string): Promise<Invoice | null> => {
+  const getInvoice = async (id: string): Promise<Invoice | null> => {
     if (useMock) {
       const found = invoicesMock.find((i) => i.id === id);
       return found ? structuredClone(found) : null;
@@ -69,7 +69,7 @@ export const useInvoices = () => {
    * Invoices across all of a tenant's agreements (tenant-shell scope).
    * Backend swap hits `/me/invoices`.
    */
-  const listForTenant = async (
+  const getInvoicesForTenant = async (
     tenantId: string,
   ): Promise<InvoiceWithRefs[]> => {
     if (useMock) {
@@ -142,10 +142,10 @@ export const useInvoices = () => {
   };
 
   return {
-    list,
-    listWithRefs,
-    get,
-    listForTenant,
+    getInvoices,
+    getInvoicesWithRefs,
+    getInvoice,
+    getInvoicesForTenant,
     updateStatus,
     recordPayment,
     sendInvoice,

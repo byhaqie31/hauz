@@ -27,7 +27,7 @@ const showPay = ref(false);
 
 const loadInvoices = async () => {
   if (!tenantId.value) return;
-  invoices.value = await useInvoices().listForTenant(tenantId.value);
+  invoices.value = await useInvoices().getInvoicesForTenant(tenantId.value);
 };
 
 const load = async () => {
@@ -36,9 +36,9 @@ const load = async () => {
     const id = tenantId.value;
     if (!id) return;
     const [a, , tk] = await Promise.all([
-      useAgreements().getActiveForTenant(id),
+      useAgreements().getActiveAgreementForTenant(id),
       loadInvoices(),
-      useTickets().listForTenant(id),
+      useTickets().getTicketsForTenant(id),
     ]);
     agreement.value = a;
     tickets.value = tk;
