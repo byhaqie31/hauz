@@ -33,6 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Owner routes ─────────────────────────────────────────────────────────
     Route::middleware('role:owner')->group(function () {
 
+        // Dashboard — single aggregated payload (stats + income series + attention feed)
+        Route::get('dashboard', [\App\Http\Controllers\Api\Owner\DashboardController::class, 'index']);
+
         // Account / settings
         Route::get('account',                          [\App\Http\Controllers\Api\Owner\AccountController::class, 'show']);
         Route::patch('account/profile',                [\App\Http\Controllers\Api\Owner\AccountController::class, 'updateProfile']);

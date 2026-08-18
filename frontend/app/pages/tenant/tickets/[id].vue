@@ -21,7 +21,7 @@ const submitting = ref(false);
 
 onMounted(async () => {
   try {
-    const found = await useTickets().getWithRefs(route.params.id as string);
+    const found = await useTickets().getTicketWithRefs(route.params.id as string);
     // Tenant scope: only show issues this tenant reported.
     data.value =
       found && found.ticket.reporterId === tenantId.value ? found : null;

@@ -16,7 +16,7 @@ const loading = ref(true);
 const showModal = ref(false);
 
 const refresh = async () => {
-  tenants.value = await useTenants().list();
+  tenants.value = await useTenants().getTenants();
 };
 
 onMounted(async () => {

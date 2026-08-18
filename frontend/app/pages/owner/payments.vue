@@ -43,7 +43,7 @@ const selectedRow = ref<InvoiceWithRefs | null>(null);
 const viewingRow = ref<InvoiceWithRefs | null>(null);
 
 const refresh = async () => {
-  rows.value = await useInvoices().listWithRefs();
+  rows.value = await useInvoices().getInvoicesWithRefs();
 };
 
 onMounted(async () => {

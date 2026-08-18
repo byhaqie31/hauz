@@ -4,13 +4,13 @@ import { unitsMock } from "~/mocks/units";
 export const useUnits = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Unit[]> => {
+  const getUnits = async (): Promise<Unit[]> => {
     if (useMock) return structuredClone(unitsMock);
     const { request } = useApi();
     return request<Unit[]>("/units");
   };
 
-  const listByProperty = async (propertyId: string): Promise<Unit[]> => {
+  const getUnitsByProperty = async (propertyId: string): Promise<Unit[]> => {
     if (useMock) {
       return structuredClone(
         unitsMock.filter((u) => u.propertyId === propertyId),
@@ -20,7 +20,7 @@ export const useUnits = () => {
     return request<Unit[]>(`/properties/${propertyId}/units`);
   };
 
-  const get = async (id: string): Promise<Unit | null> => {
+  const getUnit = async (id: string): Promise<Unit | null> => {
     if (useMock) {
       const found = unitsMock.find((u) => u.id === id);
       return found ? structuredClone(found) : null;
@@ -68,5 +68,5 @@ export const useUnits = () => {
     await request(`/units/${id}`, { method: "DELETE" });
   };
 
-  return { list, listByProperty, get, create, update, remove };
+  return { getUnits, getUnitsByProperty, getUnit, create, update, remove };
 };

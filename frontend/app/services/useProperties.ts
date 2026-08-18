@@ -8,13 +8,13 @@ import { propertiesMock } from "~/mocks/properties";
 export const useProperties = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Property[]> => {
+  const getProperties = async (): Promise<Property[]> => {
     if (useMock) return structuredClone(propertiesMock);
     const { request } = useApi();
     return request<Property[]>("/properties");
   };
 
-  const get = async (id: string): Promise<Property | null> => {
+  const getProperty = async (id: string): Promise<Property | null> => {
     if (useMock) {
       const found = propertiesMock.find((p) => p.id === id);
       return found ? structuredClone(found) : null;
@@ -93,5 +93,5 @@ export const useProperties = () => {
     await request(`/properties/${id}`, { method: "DELETE" });
   };
 
-  return { list, get, create, update, remove };
+  return { getProperties, getProperty, create, update, remove };
 };

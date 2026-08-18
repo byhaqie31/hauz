@@ -34,11 +34,11 @@ export const useReports = (year: Ref<number>) => {
     loading.value = true;
     try {
       const [props, us, ts, ags, invsWithRefs] = await Promise.all([
-        useProperties().list(),
-        useUnits().list(),
-        useTenants().list(),
-        useAgreements().list(),
-        useInvoices().listWithRefs(),
+        useProperties().getProperties(),
+        useUnits().getUnits(),
+        useTenants().getTenants(),
+        useAgreements().getAgreements(),
+        useInvoices().getInvoicesWithRefs(),
       ]);
       properties.value = props;
       units.value = us;

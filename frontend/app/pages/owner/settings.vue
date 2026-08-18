@@ -29,7 +29,7 @@ const tabOptions = computed(() => [
 onMounted(async () => {
   try {
     const settings = useOwnerSettings();
-    const [acc, ps] = await Promise.all([settings.get(), settings.listPlans()]);
+    const [acc, ps] = await Promise.all([settings.getAccount(), settings.getPlans()]);
     account.value = acc;
     plans.value = ps;
   } finally {

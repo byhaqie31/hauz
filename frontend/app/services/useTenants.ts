@@ -4,13 +4,13 @@ import { tenantsMock } from "~/mocks/tenants";
 export const useTenants = () => {
   const { useMock } = useEnv();
 
-  const list = async (): Promise<Tenant[]> => {
+  const getTenants = async (): Promise<Tenant[]> => {
     if (useMock) return structuredClone(tenantsMock);
     const { request } = useApi();
     return request<Tenant[]>("/tenants");
   };
 
-  const get = async (id: string): Promise<Tenant | null> => {
+  const getTenant = async (id: string): Promise<Tenant | null> => {
     if (useMock) {
       const found = tenantsMock.find((t) => t.id === id);
       return found ? structuredClone(found) : null;
@@ -74,5 +74,5 @@ export const useTenants = () => {
     await request(`/tenants/${id}`, { method: "DELETE" });
   };
 
-  return { list, get, invite, update, remove };
+  return { getTenants, getTenant, invite, update, remove };
 };

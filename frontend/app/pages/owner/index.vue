@@ -17,20 +17,10 @@ useHead({ title: () => t("owner.dashboard.title") });
 const dashboard = useDashboard();
 const demoTour = useDemoTour();
 onMounted(async () => {
-  await dashboard.load();
+  await dashboard.getDashboard();
   // Auto-start the product tour once per browser on demo. No-op elsewhere.
   demoTour.maybeAutoStart();
 });
-
-const occupiedCount = computed(
-  () => dashboard.units.value.filter((u) => u.status === "occupied").length,
-);
-const outstandingCount = computed(
-  () =>
-    dashboard.invoices.value.filter(
-      (i) => i.status === "pending" || i.status === "overdue",
-    ).length,
-);
 
 // Trailing-12-month summary stats for the chart card.
 const incomeTotal12mo = computed(() =>
@@ -102,7 +92,7 @@ const attentionTone: Record<
             {{ t("owner.dashboard.incomeMonth") }}
           </p>
           <p class="mt-2 text-display-sub font-semibold tracking-snug">
-            <MoneyDisplay :cents="dashboard.monthlyIncome.value" emphasis />
+            <MoneyDisplay :cents="dashboard.stats.value.monthlyIncome" emphasis />
           </p>
           <p class="mt-1 text-micro text-ink-faint">
             {{ t("owner.dashboard.incomeMonthHelp") }}
@@ -113,13 +103,13 @@ const attentionTone: Record<
             {{ t("owner.dashboard.occupancy") }}
           </p>
           <p class="mt-2 text-display-sub font-semibold tracking-snug num">
-            {{ dashboard.occupancyPct.value }}%
+            {{ dashboard.stats.value.occupancyPct }}%
           </p>
           <p class="mt-1 text-micro text-ink-faint">
             {{
               t("owner.dashboard.occupancyHelp", {
-                occupied: occupiedCount,
-                total: dashboard.units.value.length,
+                occupied: dashboard.stats.value.occupiedCount,
+                total: dashboard.stats.value.unitCount,
               })
             }}
           </p>
@@ -129,11 +119,13 @@ const attentionTone: Record<
             {{ t("owner.dashboard.outstanding") }}
           </p>
           <p class="mt-2 text-display-sub font-semibold tracking-snug">
-            <MoneyDisplay :cents="dashboard.outstanding.value" emphasis />
+            <MoneyDisplay :cents="dashboard.stats.value.outstanding" emphasis />
           </p>
           <p class="mt-1 text-micro text-ink-faint">
             {{
-              t("owner.dashboard.outstandingHelp", { count: outstandingCount })
+              t("owner.dashboard.outstandingHelp", {
+                count: dashboard.stats.value.outstandingCount,
+              })
             }}
           </p>
         </Card>
@@ -142,7 +134,7 @@ const attentionTone: Record<
             {{ t("owner.dashboard.expiringAgreements") }}
           </p>
           <p class="mt-2 text-display-sub font-semibold tracking-snug num">
-            {{ dashboard.expiringCount.value }}
+            {{ dashboard.stats.value.expiringCount }}
           </p>
           <p class="mt-1 text-micro text-ink-faint">
             {{ t("owner.dashboard.expiringHelp") }}

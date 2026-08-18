@@ -10,7 +10,7 @@ import { ownerAccountMock, plansMock } from "~/mocks/owner";
 export const useOwnerSettings = () => {
   const { useMock } = useEnv();
 
-  const get = async (): Promise<OwnerAccount> => {
+  const getAccount = async (): Promise<OwnerAccount> => {
     if (useMock) return structuredClone(ownerAccountMock);
     const { request } = useApi();
     return request<OwnerAccount>("/account");
@@ -70,17 +70,17 @@ export const useOwnerSettings = () => {
     });
   };
 
-  const listPlans = async (): Promise<Plan[]> => {
+  const getPlans = async (): Promise<Plan[]> => {
     if (useMock) return structuredClone(plansMock);
     const { request } = useApi();
     return request<Plan[]>("/plans");
   };
 
   return {
-    get,
+    getAccount,
     updateProfile,
     updatePreferences,
     updateNotifications,
-    listPlans,
+    getPlans,
   };
 };
