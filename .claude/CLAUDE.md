@@ -50,9 +50,9 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 - Issues ([pages/tenant/tickets/](frontend/app/pages/tenant/tickets/)) — list ([index.vue](frontend/app/pages/tenant/tickets/index.vue)) + detail ([[id].vue](frontend/app/pages/tenant/tickets/[id].vue)) with comment thread (tenant comments; status is owner-controlled / read-only here) + `ReportIssueModal` (files against the tenant's own unit).
 - Profile ([pages/tenant/profile.vue](frontend/app/pages/tenant/profile.vue)) — view + single-form edit of Identity / Personal / Emergency contact.
 
-The signed-in tenant is bound to a seeded tenant (Aminah) via [composables/useTenantSession.ts](frontend/app/composables/useTenantSession.ts) — the single swap point for `/me/*` endpoints when the backend lands. Tenant-scoped service reads are `getActiveForTenant` (agreements) and `listForTenant` (invoices, tickets). The "Continue as tenant" demo shortcut is now enabled (`TENANT_ENABLED` in `DemoLoginShortcuts.vue`).
+[composables/useTenantSession.ts](frontend/app/composables/useTenantSession.ts) resolves the current tenant id — `DEMO_TENANT_ID` (Aminah) in demo, `auth.user.id` against the API. Tenant-scoped service methods are the `…ForTenant` / `getProfile` / `updateProfile` ones on the contracts; they map to `/me/*` in the API adapter and ignore the id there. The "Continue as tenant" demo shortcut is now enabled (`TENANT_ENABLED` in `DemoLoginShortcuts.vue`).
 
-**Backend** — Laravel 11, contract-aligned to the frontend types (Phase 1), owner shell wired to it with Sanctum cookie auth, CSRF/401/422 handling, and a global auth/role route guard (Phase 2). `DemoSeeder` mirrors the frontend demo data. Open gap: tenant-shell **writes** (pay invoice, report issue, ticket comment, profile edit) still call owner routes and 403 against the API — see §6 of [docs/superpowers/specs/2026-07-22-frontend-backend-integration-design.md](docs/superpowers/specs/2026-07-22-frontend-backend-integration-design.md).
+**Backend** — Laravel 11, contract-aligned to the frontend types (Phase 1), owner shell wired to it with Sanctum cookie auth, CSRF/401/422 handling, and a global auth/role route guard (Phase 2). `DemoSeeder` mirrors the frontend demo data. Tenant shell is wired end-to-end too: reads via `/me/agreement|invoices|tickets`, writes via `payForTenant`, `createForTenant`, `addCommentForTenant`, `getProfile`/`updateProfile` (`/me/*`), all in both adapters. Tenant email is read-only on the profile (login identity).
 
 ---
 
@@ -147,7 +147,9 @@ docker exec roofly-frontend npm install <pkg>
 docker logs -f roofly-frontend
 ```
 
-**Demo auth credentials** (demo mode only — `app/demo/auth.ts`; API mode uses the seeded `aminah@roofly.my` / `password`):
+**API-mode credentials** (from `DemoSeeder`, all password `password`): owner `aminah@roofly.my`; tenants `aminah.yusof@example.com` (the richest record — active agreement, invoices, tickets), `arif.hakim@example.com`, `limlw@example.com`, `ravik@example.com`, `siti.khadijah@example.com`. There is no `tenant@roofly.my` in the DB.
+
+**Demo auth credentials** (demo mode only — `app/demo/auth.ts`):
 - Owner: any email NOT starting with `tenant`/`admin` (e.g. `aminah@roofly.my`)
 - Tenant: any email starting with `tenant` (e.g. `tenant@example.com`)
 - Auth persists across refresh via `localStorage["roofly_auth"]`.

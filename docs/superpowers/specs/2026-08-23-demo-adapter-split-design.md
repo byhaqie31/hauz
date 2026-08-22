@@ -95,4 +95,4 @@ No frontend test suite exists; the gate is `docker exec roofly-frontend npm run 
 
 - Bundle exclusion: a Nuxt alias (`#demo` → `app/demo` when `appEnv === "demo"`, → an empty stub otherwise) so seed data tree-shakes out of UAT/prod. Cheap once this split exists.
 - Lint rule (`no-restricted-imports`) to mechanically forbid `demo/` ← `useApi` and `services/api/` ← `demo/`.
-- Tenant-shell §6 methods, written directly in this pattern.
+- ~~Tenant-shell §6 methods, written directly in this pattern.~~ Done the same day, in this pattern: `InvoicesService.payForTenant`, `TicketsService.getTicketWithRefsForTenant/createForTenant/addCommentForTenant`, `TenantsService.getProfile/updateProfile` (+ `TenantProfile`/`TenantProfileUpdate` types). Tenant email is read-only on the profile because `PATCH /me/profile` does not accept it.

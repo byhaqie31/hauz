@@ -1,5 +1,8 @@
 import type { Tenant } from "~/types/tenant";
-import type { TenantsService } from "~/services/contracts/tenants";
+import type {
+  TenantProfile,
+  TenantsService,
+} from "~/services/contracts/tenants";
 import { tenantsMock } from "~/demo/data/tenants";
 
 export const demoTenants: TenantsService = {
@@ -47,4 +50,25 @@ export const demoTenants: TenantsService = {
     const idx = tenantsMock.findIndex((t) => t.id === id);
     if (idx !== -1) tenantsMock.splice(idx, 1);
   },
+
+  // ── Tenant-shell scope ────────────────────────────────────────────────
+  async getProfile(tenantId) {
+    const found = tenantsMock.find((t) => t.id === tenantId);
+    return found ? toProfile(found) : null;
+  },
+
+  async updateProfile(tenantId, patch) {
+    const updated = await demoTenants.update(tenantId, patch);
+    return toProfile(updated);
+  },
 };
+
+const toProfile = (t: Tenant): TenantProfile =>
+  structuredClone({
+    id: t.id,
+    name: t.name,
+    email: t.email,
+    phone: t.phone,
+    personal: t.personal,
+    emergencyContact: t.emergencyContact,
+  });

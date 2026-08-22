@@ -97,4 +97,18 @@ export const demoTickets: TicketsService = {
     }
     return structuredClone(created);
   },
+
+  // ── Tenant-shell scope: same in-memory world, no role gate in demo ─────
+  async getTicketWithRefsForTenant(id) {
+    const found = ticketsMock.find((t) => t.id === id);
+    return found ? hydrate(found) : null;
+  },
+
+  async createForTenant(input) {
+    return demoTickets.create(input);
+  },
+
+  async addCommentForTenant(input) {
+    return demoTickets.addComment(input);
+  },
 };

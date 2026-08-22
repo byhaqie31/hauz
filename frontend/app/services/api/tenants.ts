@@ -1,5 +1,8 @@
 import type { Tenant } from "~/types/tenant";
-import type { TenantsService } from "~/services/contracts/tenants";
+import type {
+  TenantProfile,
+  TenantsService,
+} from "~/services/contracts/tenants";
 
 export const apiTenants: TenantsService = {
   getTenants: () => useApi().request<Tenant[]>("/tenants"),
@@ -15,4 +18,13 @@ export const apiTenants: TenantsService = {
   remove: async (id) => {
     await useApi().request(`/tenants/${id}`, { method: "DELETE" });
   },
+
+  // ── Tenant-shell scope — session-scoped, tenantId is ignored ──────────
+  getProfile: () => useApi().request<TenantProfile>("/me/profile"),
+
+  updateProfile: (_tenantId, patch) =>
+    useApi().request<TenantProfile>("/me/profile", {
+      method: "PATCH",
+      body: patch,
+    }),
 };

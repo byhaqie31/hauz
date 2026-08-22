@@ -74,18 +74,14 @@ const onPay = async () => {
   if (!props.row) return;
   paying.value = true;
   try {
-    // Demo: stand in for the FPX redirect round-trip.
-    await new Promise((r) => setTimeout(r, 900));
-    await useInvoices().recordPayment({
-      invoiceId: props.row.invoice.id,
-      amount: total.value,
-      method: "fpx",
-      paidAt: new Date().toISOString(),
-      reference: `FPX-${bank.value.toUpperCase()}-${Date.now().toString().slice(-8)}`,
-    });
+    // The bank choice is presentational until Billplz lands — every FPX
+    // bank maps to method "fpx". Amount / paidAt are computed server-side.
+    await useInvoices().payForTenant(props.row.invoice.id, "fpx");
     show(t("tenant.payments.payModal.successToast"), "success");
     emit("paid");
     emit("update:open", false);
+  } catch {
+    show(t("common.genericError"), "danger");
   } finally {
     paying.value = false;
   }

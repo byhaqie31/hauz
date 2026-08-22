@@ -85,4 +85,30 @@ export const demoInvoices: InvoicesService = {
     // No persistent state for "lastSentAt" in demo — the backend owns that.
     return { sentAt: new Date().toISOString() };
   },
+
+  async payForTenant(invoiceId, method) {
+    // Stand in for the FPX redirect round-trip, then mirror what the API
+    // does: amount = amount + lateFee, paidAt = now, invoice → paid.
+    await new Promise((r) => setTimeout(r, 900));
+    const idx = invoicesMock.findIndex((i) => i.id === invoiceId);
+    if (idx === -1) throw new Error(`Invoice ${invoiceId} not found`);
+    const inv = invoicesMock[idx]!;
+    const now = new Date().toISOString();
+    const payment: Payment = {
+      id: crypto.randomUUID(),
+      invoiceId,
+      amount: inv.amount + inv.lateFee,
+      method,
+      status: "successful",
+      paidAt: now,
+      reference: `${method.toUpperCase()}-${Date.now().toString().slice(-8)}`,
+      createdAt: now,
+    };
+    paymentsMock.push(payment);
+    invoicesMock[idx] = { ...inv, status: "paid" };
+    return {
+      payment: structuredClone(payment),
+      invoice: structuredClone(invoicesMock[idx]!),
+    };
+  },
 };

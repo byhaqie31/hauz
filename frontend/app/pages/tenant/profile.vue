@@ -8,22 +8,23 @@ import Button from "~/components/ui/Button.vue";
 import Icon from "~/components/ui/Icon.vue";
 import { tenantProfileFormSchema } from "~/schemas/tenant";
 import type { TenantProfileFormDto } from "~/schemas/tenant";
-import type { Tenant } from "~/types/tenant";
+import type { TenantProfile } from "~/services/useTenants";
 import { useToast } from "~/composables/useToast";
 
 definePageMeta({ layout: "tenant" });
 const { t } = useI18n();
 const { formatRM } = useMoney();
 const { show } = useToast();
+const { toFieldErrors } = useApiError();
 const { tenantId } = useTenantSession();
 useHead({ title: () => t("tenant.nav.profile") });
 
-const tenant = ref<Tenant | null>(null);
+const tenant = ref<TenantProfile | null>(null);
 const loading = ref(true);
 const editing = ref(false);
 const saving = ref(false);
 
-const { defineField, handleSubmit, errors, resetForm } =
+const { defineField, handleSubmit, errors, resetForm, setErrors } =
   useForm<TenantProfileFormDto>({
     validationSchema: toTypedSchema(tenantProfileFormSchema),
   });
@@ -43,7 +44,7 @@ const [ecRelationship] = defineField("ecRelationship");
 
 const load = async () => {
   if (!tenantId.value) return;
-  tenant.value = await useTenants().getTenant(tenantId.value);
+  tenant.value = await useTenants().getProfile(tenantId.value);
 };
 
 onMounted(async () => {
@@ -54,7 +55,7 @@ onMounted(async () => {
   }
 });
 
-const fromTenant = (tn: Tenant): TenantProfileFormDto => ({
+const fromTenant = (tn: TenantProfile): TenantProfileFormDto => ({
   name: tn.name,
   email: tn.email,
   phone: tn.phone,
@@ -86,9 +87,9 @@ const onSave = handleSubmit(async (values) => {
   if (!tenantId.value) return;
   saving.value = true;
   try {
-    tenant.value = await useTenants().update(tenantId.value, {
+    // Email is the login identity — shown read-only, never sent.
+    tenant.value = await useTenants().updateProfile(tenantId.value, {
       name: values.name,
-      email: values.email,
       phone: values.phone,
       personal: {
         icNumber: values.icNumber || undefined,
@@ -109,6 +110,13 @@ const onSave = handleSubmit(async (values) => {
     });
     editing.value = false;
     show(t("tenant.profile.savedToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     saving.value = false;
   }
@@ -252,7 +260,7 @@ const formatDate = (iso?: string) => {
           </h2>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input v-model="name" :label="t('tenant.profile.fields.name')" :error="errors.name" />
-            <Input v-model="email" type="email" :label="t('tenant.profile.fields.email')" :error="errors.email" />
+            <Input v-model="email" type="email" :label="t('tenant.profile.fields.email')" :error="errors.email" disabled />
             <Input v-model="phone" :label="t('tenant.profile.fields.phone')" :error="errors.phone" />
           </div>
         </Card>

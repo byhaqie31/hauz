@@ -34,4 +34,20 @@ export const apiTickets: TicketsService = {
       method: "POST",
       body: { body: input.body },
     }),
+
+  // ── Tenant-shell scope — server derives unit/reporter from the session ──
+  getTicketWithRefsForTenant: (id) =>
+    useApi().request<TicketWithRefs>(`/me/tickets/${id}?${EXPAND}`),
+
+  createForTenant: ({ category, priority, title, description }) =>
+    useApi().request<Ticket>("/me/tickets", {
+      method: "POST",
+      body: { category, priority, title, description },
+    }),
+
+  addCommentForTenant: (input) =>
+    useApi().request<TicketComment>(`/me/tickets/${input.ticketId}/comments`, {
+      method: "POST",
+      body: { body: input.body },
+    }),
 };
