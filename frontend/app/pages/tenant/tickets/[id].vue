@@ -21,7 +21,9 @@ const submitting = ref(false);
 
 onMounted(async () => {
   try {
-    const found = await useTickets().getTicketWithRefs(route.params.id as string);
+    const found = await useTickets().getTicketWithRefsForTenant(
+      route.params.id as string,
+    );
     // Tenant scope: only show issues this tenant reported.
     data.value =
       found && found.ticket.reporterId === tenantId.value ? found : null;
@@ -54,7 +56,7 @@ const onSubmitComment = async () => {
   if (!data.value || !newComment.value.trim() || !tenantId.value) return;
   submitting.value = true;
   try {
-    const created: TicketComment = await useTickets().addComment({
+    const created: TicketComment = await useTickets().addCommentForTenant({
       ticketId: data.value.ticket.id,
       authorId: tenantId.value,
       authorRole: "tenant",
@@ -63,6 +65,8 @@ const onSubmitComment = async () => {
     data.value.comments.push(created);
     newComment.value = "";
     show(t("tenant.tickets.detail.commentToast"), "success");
+  } catch {
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

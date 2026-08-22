@@ -27,4 +27,16 @@ export interface TicketsService {
   create(input: TicketInput): Promise<Ticket>;
   transitionStatus(id: string, next: TicketStatus): Promise<Ticket>;
   addComment(input: TicketCommentInput): Promise<TicketComment>;
+
+  // ── Tenant-shell scope (`/me/tickets/*`) ──────────────────────────────
+  /** One of the tenant's own issues, with refs. Null if not theirs. */
+  getTicketWithRefsForTenant(id: string): Promise<TicketWithRefs | null>;
+  /**
+   * File an issue against the tenant's own unit. The API derives unit and
+   * reporter from the session and ignores `unitId` / `reporterId` /
+   * `reporterRole`; demo needs them to build a full `Ticket`.
+   */
+  createForTenant(input: TicketInput): Promise<Ticket>;
+  /** Comment on one of the tenant's own issues. */
+  addCommentForTenant(input: TicketCommentInput): Promise<TicketComment>;
 }

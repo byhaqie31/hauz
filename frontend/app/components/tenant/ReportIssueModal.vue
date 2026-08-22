@@ -24,6 +24,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { show } = useToast();
+const { toFieldErrors } = useApiError();
 const submitting = ref(false);
 
 const makeInitial = (): TicketInput => ({
@@ -36,7 +37,8 @@ const makeInitial = (): TicketInput => ({
   description: "",
 });
 
-const { defineField, handleSubmit, errors, resetForm } = useForm<TicketInput>({
+const { defineField, handleSubmit, errors, resetForm, setErrors } =
+  useForm<TicketInput>({
   validationSchema: toTypedSchema(ticketCreateFormSchema),
   initialValues: makeInitial(),
 });
@@ -65,10 +67,17 @@ const priorityOptions = computed(() => [
 const onSubmit = handleSubmit(async (values) => {
   submitting.value = true;
   try {
-    const created = await useTickets().create(values);
+    const created = await useTickets().createForTenant(values);
     emit("created", created);
     emit("update:open", false);
     show(t("tenant.tickets.report.createdToast"), "success");
+  } catch (err) {
+    const fieldErrors = toFieldErrors(err);
+    if (fieldErrors) {
+      setErrors(fieldErrors);
+      return;
+    }
+    show(t("common.genericError"), "danger");
   } finally {
     submitting.value = false;
   }

@@ -1,5 +1,5 @@
 import type { Invoice, InvoiceStatus } from "~/types/invoice";
-import type { Payment, PaymentInput } from "~/types/payment";
+import type { Payment, PaymentInput, PaymentMethod } from "~/types/payment";
 import type { Agreement } from "~/types/agreement";
 import type { Property } from "~/types/property";
 import type { Unit } from "~/types/unit";
@@ -25,4 +25,13 @@ export interface InvoicesService {
     input: PaymentInput,
   ): Promise<{ payment: Payment; invoice: Invoice }>;
   sendInvoice(id: string): Promise<{ sentAt: string }>;
+  /**
+   * Tenant-shell scope: the tenant pays one of their own invoices. The server
+   * computes amount / paidAt / status; the client only picks the method.
+   * API: `POST /me/invoices/{id}/pay`.
+   */
+  payForTenant(
+    invoiceId: string,
+    method: PaymentMethod,
+  ): Promise<{ payment: Payment; invoice: Invoice }>;
 }

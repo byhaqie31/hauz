@@ -244,7 +244,10 @@ class DemoSeeder extends Seeder
             User::updateOrCreate(['id' => $id], array_merge($attrs, [
                 'role' => 'tenant',
                 'invited_by' => self::OWNER_ID,
-                'password' => null,
+                // Demo seed only: real tenants enter via invite / magic link and
+                // have no password. A known password lets local + UAT testers
+                // log in as a tenant through the normal form.
+                'password' => Hash::make('password'),
             ]));
 
             $this->pinCreatedAt('users', $id, $createdAt);

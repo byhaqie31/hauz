@@ -31,4 +31,10 @@ export const apiInvoices: InvoicesService = {
 
   sendInvoice: (id) =>
     useApi().request(`/invoices/${id}/send`, { method: "POST" }),
+
+  payForTenant: (invoiceId, method) =>
+    useApi().request(`/me/invoices/${invoiceId}/pay`, {
+      method: "POST",
+      body: { method },
+    }),
 };
