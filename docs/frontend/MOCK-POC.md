@@ -18,26 +18,23 @@
 
 ## 2. Folder layout
 
+> **Updated 2026-08-23.** The demo layer and the API layer are now separate adapters selected once per service — see [specs/2026-08-23-demo-adapter-split-design.md](../superpowers/specs/2026-08-23-demo-adapter-split-design.md). The layout below supersedes the original `mocks/` + `if (useMock)` pattern described in the rest of this doc; entity sections still apply for types, seed content, and UX.
+
 ```
 frontend/app/
 ├── types/                ← single source of truth for entity shapes
-│   ├── property.ts
-│   ├── unit.ts
-│   ├── tenant.ts
-│   └── ...
-├── mocks/                ← seed data, only imported by services
-│   ├── properties.ts
-│   ├── units.ts
-│   └── ...
-├── services/             ← the swap point: today returns mocks, tomorrow calls useApi()
-│   ├── useProperties.ts
-│   ├── useUnits.ts
-│   └── ...
-└── composables/
-    └── useApi.ts         ← unchanged; services will start using it post-swap
+├── demo/                 ← demo-only; never imports useApi
+│   ├── auth.ts           ← demoAuth (localStorage session) + DEMO_TENANT_ID
+│   ├── data/             ← seed arrays (was mocks/)
+│   └── services/         ← demoX: XService, one per entity + dashboard
+├── services/
+│   ├── contracts/        ← XService interfaces + *WithRefs types
+│   ├── api/              ← apiX: XService, Laravel calls via useApi(); never imports ~/demo
+│   └── useX.ts           ← auto-imported: useEnv().useMock ? demoX : apiX
+└── composables/useApi.ts ← CSRF / 401 / 422 handling for the API adapters
 ```
 
-**Rule:** pages and components import from `services/` only. They must never `import { propertiesMock } from "~/mocks/..."`. That single boundary is what makes the swap painless.
+**Rule:** pages and components import from `services/useX` only — never from `~/demo/**` or `~/services/api/**`. Adding a method = add it to the contract, implement it in both adapters.
 
 ---
 

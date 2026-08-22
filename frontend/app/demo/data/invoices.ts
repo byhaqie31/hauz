@@ -1,7 +1,7 @@
 import type { Agreement } from "~/types/agreement";
 import type { Invoice, InvoiceStatus } from "~/types/invoice";
 import type { Payment } from "~/types/payment";
-import { agreementsMock } from "~/mocks/agreements";
+import { agreementsMock } from "~/demo/data/agreements";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
