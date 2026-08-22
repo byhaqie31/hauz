@@ -6,7 +6,7 @@ Quick orientation for any new Claude Code session in this repo. Read this before
 
 ## What this is
 
-**Roofly.my** — a rent-management SaaS for Malaysian landlords. Solo build, currently in the **frontend mock-first phase** (Phase 2). No backend exists yet; the entire owner shell is implemented against typed TypeScript mocks behind a single `useMock` runtime toggle, ready to swap to a Laravel + Sanctum backend per-entity when that lands.
+**Roofly.my** — a rent-management SaaS for Malaysian landlords. Solo build. The Nuxt frontend runs against either the **Laravel + Sanctum API** (UAT/prod) or a self-contained **demo layer** (`app/demo/` — in-memory seed data, never touches the network), selected once per service by `useEnv().useMock`. Demo is also the live prototype surface: new features are built demo-adapter-first, shipped to UAT behind a `features.*` flag, and get their API adapter when the backend catches up. Design: [docs/superpowers/specs/2026-08-23-demo-adapter-split-design.md](docs/superpowers/specs/2026-08-23-demo-adapter-split-design.md).
 
 ---
 
@@ -26,7 +26,7 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 ## Stack
 
 - **Frontend** — Nuxt 4 + Vue 3, Pinia, vee-validate + Zod, Reka UI primitives, Tailwind v3, `@nuxtjs/i18n` (en + ms). Lives in [frontend/](frontend/).
-- **Backend** — Laravel 11 + Sanctum + Spatie (Permission, MediaLibrary, ActivityLog), MySQL, Redis, RabbitMQ. **Not yet scaffolded** — slot lives in [backend/](backend/) but is empty.
+- **Backend** — Laravel 11 + Sanctum + Spatie (Permission, MediaLibrary, ActivityLog), MySQL, Redis, RabbitMQ. Lives in [backend/](backend/); serves the frontend's camelCase contract via API Resources + FormRequests (design: [docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md](docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md)). Tests: `docker exec roofly-backend php artisan test` (sqlite in-memory).
 - **Dev** — Docker Compose ([docker-compose.yml](docker-compose.yml)). Frontend container is `roofly-frontend`, exposes :3000 and HMRs against the host.
 
 ---
@@ -52,7 +52,7 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 
 The signed-in tenant is bound to a seeded tenant (Aminah) via [composables/useTenantSession.ts](frontend/app/composables/useTenantSession.ts) — the single swap point for `/me/*` endpoints when the backend lands. Tenant-scoped service reads are `getActiveForTenant` (agreements) and `listForTenant` (invoices, tickets). The "Continue as tenant" demo shortcut is now enabled (`TENANT_ENABLED` in `DemoLoginShortcuts.vue`).
 
-**Backend** — not started.
+**Backend** — Laravel 11, contract-aligned to the frontend types (Phase 1), owner shell wired to it with Sanctum cookie auth, CSRF/401/422 handling, and a global auth/role route guard (Phase 2). `DemoSeeder` mirrors the frontend demo data. Open gap: tenant-shell **writes** (pay invoice, report issue, ticket comment, profile edit) still call owner routes and 403 against the API — see §6 of [docs/superpowers/specs/2026-07-22-frontend-backend-integration-design.md](docs/superpowers/specs/2026-07-22-frontend-backend-integration-design.md).
 
 ---
 
@@ -62,9 +62,15 @@ The signed-in tenant is bound to a seeded tenant (Aminah) via [composables/useTe
 frontend/app/
 ├── types/         # entity shapes (single source of truth, post-swap stays put)
 ├── schemas/       # Zod (vee-validate) — shared between create modals & edit forms
-├── mocks/         # in-memory seed data, only imported by services
-├── services/      # the swap point — `if (useMock) ... else useApi()` per method
-├── composables/   # useDashboard, useReports, useTheme, useToast, useMoney, useApi
+├── demo/          # demo-only — NEVER imports useApi
+│   ├── auth.ts    #   demoAuth (localStorage session, email prefix → role), DEMO_TENANT_ID
+│   ├── data/      #   in-memory seed arrays (propertiesMock, unitsMock, …)
+│   └── services/  #   demoX: XService — one per entity + dashboard
+├── services/
+│   ├── contracts/ # XService interfaces + *WithRefs types (both adapters implement these)
+│   ├── api/       # apiX: XService — Laravel calls via useApi(); NEVER imports ~/demo
+│   └── useX.ts    # auto-imported selector: useEnv().useMock ? demoX : apiX (+ type re-exports)
+├── composables/   # useDashboard, useReports, useTheme, useToast, useMoney, useApi, useApiError
 ├── components/
 │   ├── ui/        # Card, Pill, Button, Input, Select, Modal, Icon, MoneyDisplay,
 │   │              # MiniAreaChart, EmptyState, Toaster
@@ -74,7 +80,7 @@ frontend/app/
 │   └── layout/    # MobileNavDrawer
 ├── pages/         # routing (Nuxt file-based)
 ├── layouts/       # owner.vue, tenant.vue, auth.vue, default.vue
-├── stores/        # auth.ts (Pinia, localStorage-backed)
+├── stores/        # auth.ts (Pinia; delegates to demoAuth / apiAuth)
 ├── plugins/       # theme.ts, auth-restore.client.ts
 └── utils/         # rpgt.ts, propertyCompletion.ts, csv.ts
 ```
@@ -87,7 +93,8 @@ frontend/app/
 
 - **Git flow: feature → `UAT` → `main`. Never feature → `main`.** All `gh pr create` calls in this repo use `--base UAT`. The only `--base main` PR is a release promotion with `--head UAT`. Enforced by [.github/workflows/guard-main.yml](.github/workflows/guard-main.yml) (required check on `protect-main`). Full rules in [docs/global/BRANCH-PROTECTION.md](docs/global/BRANCH-PROTECTION.md).
 - **Money is integer sen everywhere.** Format only at the render edge via `useMoney().formatRM` or `<MoneyDisplay>`. Never store formatted strings.
-- **Mock toggle is single source of truth.** All services read `useEnv().useMock` inside the composable — never module-level constants. Flip per-environment via `NUXT_PUBLIC_USE_MOCK=false`. Demo (`NUXT_PUBLIC_APP_ENV=demo`) always uses mocks regardless of the flag, because `useEnv` derives `useMock = isDemo || config.public.useMock`. See `composables/useEnv.ts`.
+- **Mock toggle is single source of truth.** Every `services/useX.ts` selector reads `useEnv().useMock` at call time — never module-level constants. Flip per-environment via `NUXT_PUBLIC_USE_MOCK=false`. Demo (`NUXT_PUBLIC_APP_ENV=demo`) always uses the demo layer regardless of the flag, because `useEnv` derives `useMock = isDemo || config.public.useMock`. See `composables/useEnv.ts`.
+- **Demo and API are separate adapters, not branches.** `app/demo/**` never imports `useApi`; `services/api/**` never imports `~/demo`; pages/components only import `services/useX`. Never write `if (useMock)` inside a method — add the method to the contract and implement it in both adapters (TypeScript enforces parity). New feature recipe: contract → demo adapter (full) → API adapter (stub throwing `Not implemented` until the backend lands) → UI behind a `features.*` flag in `useEnv`. `demo-roofly` never gets feature commits of its own; it only merges UAT.
 - **Per-environment behaviour goes through `useEnv()`.** One env var (`NUXT_PUBLIC_APP_ENV` = `"demo" | "uat" | "production"`) drives all UI feature flags (`isDemo`, `showDemoShortcuts`, `showFloatingFeedback`, `showEnvBanner`, `redirectRootToDemo`, etc.). Components ask for derived flags by name, not for the raw env. Add new env-driven features as one new derived field in `composables/useEnv.ts`, not a new env var per feature.
 - **Documents tab + tenant photos + reports PDF are gated** by `runtimeConfig.public.features.documents`. Currently default-on so demos signal Phase-4 file storage is coming; flip semantics will switch to gating real storage when it lands.
 - **Field tiers** (Properties, Tenants): Tier 1 captured in the create modal; Tier 2/3 edited on the detail page. JSON sub-objects (`ownership`, `utilities`, `personal`, `emergencyContact`) on the model map 1:1 to detail-page tabs and to backend JSON columns.
@@ -140,7 +147,7 @@ docker exec roofly-frontend npm install <pkg>
 docker logs -f roofly-frontend
 ```
 
-**Mock auth credentials** (no validation, mock-only):
+**Demo auth credentials** (demo mode only — `app/demo/auth.ts`; API mode uses the seeded `aminah@roofly.my` / `password`):
 - Owner: any email NOT starting with `tenant`/`admin` (e.g. `aminah@roofly.my`)
 - Tenant: any email starting with `tenant` (e.g. `tenant@example.com`)
 - Auth persists across refresh via `localStorage["roofly_auth"]`.

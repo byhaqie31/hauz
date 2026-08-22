@@ -1,14 +1,10 @@
 import { defineStore } from "pinia";
+import type { AuthUser } from "~/types/auth";
+import type { AuthAdapter, RegisterPayload } from "~/services/contracts/auth";
+import { demoAuth } from "~/demo/auth";
+import { apiAuth } from "~/services/api/auth";
 
-export type UserRole = "owner" | "tenant" | "admin";
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  role: UserRole;
-}
+export type { AuthUser, UserRole } from "~/types/auth";
 
 interface AuthState {
   user: AuthUser | null;
@@ -17,19 +13,9 @@ interface AuthState {
   authReady: boolean;
 }
 
-interface RegisterPayload {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-}
+/** Demo → localStorage-backed stub; otherwise Sanctum SPA cookie auth. */
+const adapter = (): AuthAdapter => (useEnv().useMock ? demoAuth : apiAuth);
 
-/**
- * Real Sanctum SPA cookie auth. The httpOnly session cookie is the single
- * source of truth — no localStorage. `login`/`register` prime the CSRF
- * cookie then POST; `fetchMe` hydrates on boot; the route guard waits on
- * `authReady`.
- */
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     user: null,
@@ -48,14 +34,7 @@ export const useAuthStore = defineStore("auth", {
     async login(email: string, password: string) {
       this.loading = true;
       try {
-        const { request } = useApi();
-        // Prime the CSRF cookie before the stateful POST.
-        await request("/../sanctum/csrf-cookie");
-        const res = await request<{ user: AuthUser }>("/auth/login", {
-          method: "POST",
-          body: { email, password },
-        });
-        this.user = res.user;
+        this.user = await adapter().login(email, password);
       } finally {
         this.loading = false;
       }
@@ -64,40 +43,24 @@ export const useAuthStore = defineStore("auth", {
     async register(payload: RegisterPayload) {
       this.loading = true;
       try {
-        const { request } = useApi();
-        await request("/../sanctum/csrf-cookie");
-        const res = await request<{ user: AuthUser }>("/auth/register", {
-          method: "POST",
-          body: {
-            ...payload,
-            password_confirmation: payload.password,
-          },
-        });
-        this.user = res.user;
+        this.user = await adapter().register(payload);
       } finally {
         this.loading = false;
       }
     },
 
     async logout() {
-      try {
-        const { request } = useApi();
-        await request("/auth/logout", { method: "POST" });
-      } catch {
-        // Even if the server call fails, drop local state.
-      }
+      await adapter().logout();
       this.user = null;
     },
 
     /**
-     * Boot hydration: ask the server who we are. A 401 is the expected
-     * "not logged in" case, not an error to surface. Always marks the
-     * session ready so the route guard can proceed.
+     * Boot hydration. Always marks the session ready so the route guard can
+     * proceed; a signed-out result is `user = null`, not an error.
      */
     async fetchMe() {
       try {
-        const { request } = useApi();
-        this.user = await request<AuthUser>("/auth/me");
+        this.user = await adapter().fetchMe();
       } catch {
         this.user = null;
       } finally {
