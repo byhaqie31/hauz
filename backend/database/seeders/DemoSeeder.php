@@ -11,6 +11,7 @@ use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\AdminPermissions;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,10 @@ class DemoSeeder extends Seeder
 {
     // ── Owner ───────────────────────────────────────────────────────────────
     private const OWNER_ID = '00000000-0000-4000-8000-000000000001';
+
+    // ── Admins (spec § 9) ──────────────────────────────────────────────────
+    private const ADMIN_SUPER = '00000000-0000-4000-8000-000000000901';
+    private const ADMIN_OPS = '00000000-0000-4000-8000-000000000902';
 
     // ── Tenants (tenants.ts) ────────────────────────────────────────────────
     private const TENANT_AMINAH = '00000000-0000-4000-8000-000000000101';
@@ -100,6 +105,8 @@ class DemoSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function (): void {
+            $this->call(AdminPermissionSeeder::class);
+            $this->seedAdmins();
             $this->seedOwner();
             $tenants = $this->seedTenants();
             $this->seedProperties();
@@ -107,6 +114,7 @@ class DemoSeeder extends Seeder
             $agreements = $this->seedAgreements($tenants);
             $this->seedInvoicesAndPayments($agreements);
             $this->seedTicketsAndComments();
+            $this->call(AnalyticsDemoSeeder::class);
         });
     }
 
@@ -142,7 +150,44 @@ class DemoSeeder extends Seeder
                     'in_app' => true,
                 ],
             ],
+            // Mirrors the demo persona (frontend/app/demo/auth.ts): a seasoned
+            // owner, already onboarded, checklist dismissed over five
+            // already-populated properties. Without this, a fresh
+            // migrate:fresh --seed leaves onboarded_at NULL (the Task 1
+            // migration only back-fills rows that exist when it runs) and the
+            // API-mode owner gets ambushed by onboarding, disagreeing with the
+            // demo adapter for the same persona.
+            'purposes' => ['rental'],
+            'onboarded_at' => now(),
+            'checklist_dismissed_at' => now(),
         ]);
+    }
+
+    // ── Admins ──────────────────────────────────────────────────────────────
+
+    private function seedAdmins(): void
+    {
+        $super = User::updateOrCreate(['id' => self::ADMIN_SUPER], [
+            'name' => 'Baihaqie (super-admin)',
+            'email' => 'admin@roofly.my',
+            'phone' => null,
+            'role' => 'admin',
+            'is_super_admin' => true,
+            'password' => Hash::make('password'),
+            'first_login_at' => Carbon::parse('2026-08-01T01:00:00Z'),
+        ]);
+        $super->syncPermissions([]); // super-admin bypasses checks; no rows needed
+
+        $ops = User::updateOrCreate(['id' => self::ADMIN_OPS], [
+            'name' => 'Ops Admin',
+            'email' => 'ops@roofly.my',
+            'phone' => null,
+            'role' => 'admin',
+            'is_super_admin' => false,
+            'password' => Hash::make('password'),
+            'first_login_at' => Carbon::parse('2026-08-02T01:00:00Z'),
+        ]);
+        $ops->syncPermissions(AdminPermissions::operationsPreset());
     }
 
     // ── Tenants (tenants.ts tenantsMock) ─────────────────────────────────────
@@ -271,6 +316,7 @@ class DemoSeeder extends Seeder
             'name' => 'Suria KLCC #12-3A',
             'internal_label' => 'KLCC-A',
             'type' => 'condo',
+            'purpose' => 'rental',
             'notes' => 'Master bedroom AC serviced 2025-11.',
             'address' => 'Jalan Ampang, Lot 241',
             'city' => 'Kuala Lumpur',
@@ -325,6 +371,7 @@ class DemoSeeder extends Seeder
             'owner_id' => self::OWNER_ID,
             'name' => 'TTDI Terrace',
             'type' => 'landed',
+            'purpose' => 'rental',
             'address' => '12, Jalan Burhanuddin Helmi 2',
             'city' => 'Kuala Lumpur',
             'state' => 'W.P. Kuala Lumpur',
@@ -359,6 +406,7 @@ class DemoSeeder extends Seeder
             'owner_id' => self::OWNER_ID,
             'name' => 'Wangsa Walk Shoplot G-12',
             'type' => 'shoplot',
+            'purpose' => 'rental',
             'address' => 'Lot 12, Jalan Wangsa Delima',
             'city' => 'Kuala Lumpur',
             'state' => 'W.P. Kuala Lumpur',
@@ -382,6 +430,7 @@ class DemoSeeder extends Seeder
             'owner_id' => self::OWNER_ID,
             'name' => 'USJ 9 Spare Room',
             'type' => 'room',
+            'purpose' => 'rental',
             'address' => '32, Jalan USJ 9/2',
             'city' => 'Subang Jaya',
             'state' => 'Selangor',
@@ -394,6 +443,7 @@ class DemoSeeder extends Seeder
             'name' => 'Subang Terrace (multi-unit)',
             'internal_label' => 'USJ-MULTI',
             'type' => 'landed',
+            'purpose' => 'rental',
             'notes' => 'Three rentable units under one terrace. Master + 2 rooms.',
             'address' => '8, Jalan USJ 18/3',
             'city' => 'Subang Jaya',

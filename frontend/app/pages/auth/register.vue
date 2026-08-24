@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import Button from "~/components/ui/Button.vue";
 import Input from "~/components/ui/Input.vue";
+import GoogleSignInButton from "~/components/auth/GoogleSignInButton.vue";
 
 definePageMeta({ layout: "auth" });
 
@@ -10,6 +11,9 @@ useHead({ title: () => t("auth.register") });
 
 const { toFieldErrors } = useApiError();
 const auth = useAuthStore();
+const env = useEnv();
+const { features } = env;
+const { track, visitorId } = useTrack();
 const name = ref("");
 const email = ref("");
 const phone = ref("");
@@ -32,13 +36,19 @@ const onSubmit = async () => {
       email: email.value,
       phone: phone.value,
       password: password.value,
+      visitorId: env.trackingEnabled ? visitorId() : undefined,
     });
+    track("register", { email: email.value, userId: auth.user?.id ?? "" });
     await navigateTo("/owner");
   } catch (err) {
     const fieldErrors = toFieldErrors(err);
     error.value = fieldErrors ? Object.values(fieldErrors)[0]! : t("auth.invalidCredentials");
   }
 };
+
+const { googleError, onGoogle } = useGoogleSignIn(async () => {
+  await navigateTo("/owner");
+});
 </script>
 
 <template>
@@ -49,6 +59,16 @@ const onSubmit = async () => {
       </h1>
       <p class="mt-2 text-body text-ink-muted">{{ t("auth.registerSubtitle") }}</p>
     </header>
+
+    <div v-if="features.googleLogin" class="mb-6 space-y-3">
+      <GoogleSignInButton @credential="onGoogle" />
+      <p v-if="googleError" class="text-center text-caption text-accent" role="alert">{{ googleError }}</p>
+      <div class="flex items-center gap-3 text-micro uppercase tracking-wider text-ink-faint">
+        <span class="h-px flex-1 bg-line-passive" />
+        {{ t("auth.google.or") }}
+        <span class="h-px flex-1 bg-line-passive" />
+      </div>
+    </div>
 
     <form class="space-y-4" @submit.prevent="onSubmit">
       <Input

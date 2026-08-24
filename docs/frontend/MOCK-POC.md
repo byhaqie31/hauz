@@ -318,6 +318,7 @@ The PROJECT.md `properties` table currently covers Tier 1 only. Recommended exte
   - `properties.owner_id` continues to point at the primary co-owner's `user_id`; the table just makes the joint-ownership picture explicit and queryable ("show all properties where user X is any kind of owner" becomes a simple join).
 - **Mortgage stays nested in `ownership` JSON for now.** TODO: extract to a `property_mortgages` table when we add payment history, refinancing events, or multi-mortgage support.
 - Photos and document uploads (Documents tab) are deferred to Phase 4+ when storage is wired; reuse the polymorphic `documents` table already in PROJECT.md.
+- **`purpose` string column** (default `"rental"`, `rental|own_stay|investment`) shipped in `2026_08_25_000002_add_purpose_to_properties_table.php` — a plain string, not a DB enum, so sqlite `ALTER TABLE` stays simple; `App\Enums\PropertyPurpose` + an Eloquent cast give it type safety in PHP. Non-rental properties are excluded from occupancy stats, the dashboard attention feed, and the Reports income table — they surface only in a separate "not for rent" capital-position group. The Add Property modal only shows a purpose picker once the owner has more than one purpose selected in onboarding; otherwise the value is implied.
 
 ---
 
@@ -783,7 +784,12 @@ The Preferences form is special — it applies its values to the live app *immed
 - **`owner_preferences` JSON** column on `users` (or sibling table) — `{ locale, theme, money_locale }`. Could also be a kv-store; small enough to stay JSON.
 - **`notification_preferences` JSON** column on `users` — `{ events: {...}, channels: {...} }`. Phase 4 may promote channels into a per-event matrix; the JSON shape absorbs that without a migration.
 - **Subscription / plan** is its own concern in Phase 7 — likely a `subscriptions` table joined to `users.id`. The frontend currently reads `account.planTier` from the same payload as profile.
-- **Endpoints the frontend mocks today**: `GET /account`, `PATCH /account/profile`, `PATCH /account/preferences`, `PATCH /account/notifications`, `GET /plans`.
+- **Endpoints the frontend mocks today**: `GET /account`, `PATCH /account/profile`, `PATCH /account/preferences`, `PATCH /account/notifications`, `GET /plans`, `PATCH /account/onboarding`, `PATCH /account/checklist`, `POST /account/password`.
+- **New `users` columns** (`2026_08_25_000001_add_google_and_onboarding_to_users_table.php`): `google_id` (nullable unique, owner-only Google sign-in), `avatar_url`, `purposes` (json, e.g. `["rental","own_stay"]`), `onboarded_at` (nullable timestamp — backfilled to `created_at` for every pre-existing owner so no one is retroactively forced through onboarding), `checklist_dismissed_at` (nullable timestamp).
+
+### 9.6 Owner onboarding & getting-started checklist
+
+One-screen `/owner/onboarding` (full-screen `layouts/onboarding.vue`, no sidebar) asks a new owner to pick one or more purposes (`rental` / `own_stay` / `investment`) via `OwnerPurposePicker`; submits to `completeOnboarding`. A route guard in `middleware/auth.global.ts` routes any owner with a falsy `onboardedAt` here before anything else in `/owner/*`. The dashboard's `GettingStartedCard` shows a computed, **not stored**, checklist (`utils/onboardingChecklist.ts`'s `buildChecklist()`) derived fresh each load from the owner's real properties/units/tenants/agreements — steps can never drift out of sync with reality the way a stored "completed steps" list could. Only `checklistDismissedAt` (dismiss/restore) and `purposes`/`onboardedAt` (the one-time gate) are persisted.
 
 ---
 
@@ -847,3 +853,33 @@ The tenant-facing app reuses the owner entities and services rather than introdu
 **Surfaces** (`pages/tenant/`): Home (rent-due hero + stats + open-issues), Agreement (read-only summary + Phase-4 documents card, reuses owner `AgreementDocumentsPanel`), Payments (invoice cards + `PayInvoiceModal` simulating an FPX pay→paid round-trip via the existing `recordPayment`), Issues (list + detail with comment thread, `ReportIssueModal` filing against the tenant's own unit; **status stays owner-controlled** — tenants comment but don't transition), Profile (view + single-form edit of identity / personal / emergency, writing through `useTenants().update`).
 
 **Schema impact:** none beyond the owner entities. The backend adds tenant-scoped `/me/agreement`, `/me/invoices`, `/me/tickets` read endpoints (server already knows the caller), plus a real rent-payment flow behind `PayInvoiceModal` (currently a mocked FPX success). Profile edits hit the same tenant `PATCH` as the owner-side tenant detail.
+
+---
+
+## 14. Admin back office (SP1)
+
+A third shell alongside owner/tenant — Roofly staff, not customers. Gated by `useEnv().features.admin`, always off in demo, separate `/admin/login` auth. Own demo data (`app/demo/data/admin.ts`) and own contracts/services (`services/contracts/admin/`, `services/api/admin/`, `demo/services/admin/`), not a reuse of the owner/tenant entities — admin reads are cross-tenant summaries, never the full owner/tenant records.
+
+**Five surfaces:**
+- **Dashboard** (`pages/admin/index.vue`) — platform-wide stat tiles + an attention list (over-cap owners, overdue-heavy owners, etc.), via `useAdminDashboardData`.
+- **Owners** (`pages/admin/owners/index.vue` + `[id].vue`) — searchable/filterable list + detail (properties, tenants, warn/suspend actions).
+- **Tenants** (`pages/admin/tenants/index.vue` + `[id].vue`) — searchable/filterable list + detail.
+- **Settings → Admins** (`pages/admin/settings.vue`) — invite/edit admin users, assign permissions from the fixed `AdminPermissions` catalogue (13 keys, incl. an Operations preset).
+- **Audit** (`pages/admin/audit.vue`) — paginated, filterable log of admin actions.
+
+**Types** (`app/types/admin.ts` — link, not duplicated here):
+- `AdminOwner` / `AdminOwnerCounts` — summary-only (property/unit/tenant/agreement/invoice/ticket counts), never money, never the owner's full property/tenant graph.
+- `AdminTenant`
+- `AdminPropertySummary`
+- `AdminUser` / `AdminPermission` (mirrors backend `App\Support\AdminPermissions::ALL`) / `PermissionCatalogue`
+- `AuditEntry`
+- `Paginated<T>` — the shared `{ data, meta: { page, perPage, total, lastPage } }` envelope every admin list endpoint returns.
+
+**Schema impact:**
+- `users` table gains admin-only columns: `is_super_admin`, `suspended_at`, `suspension_reason`, `last_active_at`, `first_login_at`, `disabled_at`.
+- New `admin_invites` table (`user_id`, `token_hash`, `expires_at`, `accepted_at` — no email, no permissions snapshot; consumed by `/admin/auth/accept-invite`).
+- Spatie `permissions` seeded from `App\Support\AdminPermissions` (13 keys), via `AdminPermissionSeeder`; an admin's permission set is direct Spatie permission assignments (`syncPermissions`), not roles, and not a JSON column.
+- `ActivityLog` entries written by `App\Services\AuditLogger` use `log_name = admin` — the Audit surface reads this log, it isn't a bespoke table.
+- Admin API Resources are key-set-pinned by `AdminResourcesTest` (backend) — summaries only, see CLAUDE.md's "Admin sees summaries only" convention.
+
+**Future-phase hooks (not built yet, noted so SP1 doesn't box them out):** owner-warning delivery channels beyond mail (`App\Notifications\OwnerWarning::via` returns `['mail']` only in SP1 — SP2 may add whatsapp/sms, configurable per owner or per template); a `settings.flags` permission already exists in the catalogue for a future admin-controlled feature-flag surface; `owners.plan` / subscription management is stubbed as a permission key ahead of the Phase 7 subscriptions work in § 9.5.

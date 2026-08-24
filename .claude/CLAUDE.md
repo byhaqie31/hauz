@@ -18,6 +18,9 @@ Quick orientation for any new Claude Code session in this repo. Read this before
 | [docs/frontend/MOCK-POC.md](docs/frontend/MOCK-POC.md) | The frontend mock-first plan, entity-by-entity. Section per surface (Properties, Tenants, Payments, Maintenance, Dashboard & Reports, Settings) with types, mocks, services, and **brief** schema impact for the future backend. **Frontend-first by intent — keep schema-impact subsections forward-looking, not exhaustive.** |
 | [docs/frontend/UI-STANDARDS.md](docs/frontend/UI-STANDARDS.md) | Design tokens, components, layout, dark mode, mobile patterns. Section 11 (Mobile patterns) is a living section — add new responsive guidelines there. |
 | [docs/global/BRANCH-PROTECTION.md](docs/global/BRANCH-PROTECTION.md) | Git workflow / merge rules. |
+| [docs/backend/API-SPEC.md](docs/backend/API-SPEC.md) | Backend contract per shell → module → endpoint (middleware, request rules, response shapes, audit actions, stubs). Update whenever `routes/api.php`, a FormRequest, or a Resource changes. |
+| [docs/frontend/API-MAP.md](docs/frontend/API-MAP.md) | Per shell → page → service method → endpoint, with the demo-adapter equivalent. Update with every new contract method. |
+
 
 If a question is answered by one of these, defer to that doc and don't re-derive.
 
@@ -26,7 +29,7 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 ## Stack
 
 - **Frontend** — Nuxt 4 + Vue 3, Pinia, vee-validate + Zod, Reka UI primitives, Tailwind v3, `@nuxtjs/i18n` (en + ms). Lives in [frontend/](frontend/).
-- **Backend** — Laravel 11 + Sanctum + Spatie (Permission, MediaLibrary, ActivityLog), MySQL, Redis, RabbitMQ. Lives in [backend/](backend/); serves the frontend's camelCase contract via API Resources + FormRequests (design: [docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md](docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md)). Tests: `docker exec roofly-backend php artisan test` (sqlite in-memory).
+- **Backend** — Laravel 13 + Sanctum + Spatie (Permission, MediaLibrary, ActivityLog), MySQL, Redis, RabbitMQ. Lives in [backend/](backend/); serves the frontend's camelCase contract via API Resources + FormRequests (design: [docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md](docs/superpowers/specs/2026-07-21-backend-api-contract-alignment-design.md)). Tests: `docker exec roofly-backend php artisan test` (sqlite in-memory).
 - **Dev** — Docker Compose ([docker-compose.yml](docker-compose.yml)). Frontend container is `roofly-frontend`, exposes :3000 and HMRs against the host.
 
 ---
@@ -52,7 +55,13 @@ If a question is answered by one of these, defer to that doc and don't re-derive
 
 [composables/useTenantSession.ts](frontend/app/composables/useTenantSession.ts) resolves the current tenant id — `DEMO_TENANT_ID` (Aminah) in demo, `auth.user.id` against the API. Tenant-scoped service methods are the `…ForTenant` / `getProfile` / `updateProfile` ones on the contracts; they map to `/me/*` in the API adapter and ignore the id there. The "Continue as tenant" demo shortcut is now enabled (`TENANT_ENABLED` in `DemoLoginShortcuts.vue`).
 
-**Backend** — Laravel 11, contract-aligned to the frontend types (Phase 1), owner shell wired to it with Sanctum cookie auth, CSRF/401/422 handling, and a global auth/role route guard (Phase 2). `DemoSeeder` mirrors the frontend demo data. Tenant shell is wired end-to-end too: reads via `/me/agreement|invoices|tickets`, writes via `payForTenant`, `createForTenant`, `addCommentForTenant`, `getProfile`/`updateProfile` (`/me/*`), all in both adapters. Tenant email is read-only on the profile (login identity).
+**Backend** — Laravel 13, contract-aligned to the frontend types (Phase 1), owner shell wired to it with Sanctum cookie auth, CSRF/401/422 handling, and a global auth/role route guard (Phase 2). `DemoSeeder` mirrors the frontend demo data. Tenant shell is wired end-to-end too: reads via `/me/agreement|invoices|tickets`, writes via `payForTenant`, `createForTenant`, `addCommentForTenant`, `getProfile`/`updateProfile` (`/me/*`), all in both adapters. Tenant email is read-only on the profile (login identity).
+
+**Admin shell — complete in mock + API form (6 surfaces):** Dashboard ([pages/admin/index.vue](frontend/app/pages/admin/index.vue)) — stat tiles + attention list. Owners ([pages/admin/owners/](frontend/app/pages/admin/owners/)) — list + detail (summary counts only, never money). Tenants ([pages/admin/tenants/](frontend/app/pages/admin/tenants/)) — list + detail. Analytics ([pages/admin/analytics.vue](frontend/app/pages/admin/analytics.vue)) — marketing-site funnel (visitors → demo → leads → registered) + daily views/registrations charts + top pages/referrers + a searchable/filterable leads table with CSV export and a per-lead event-history drawer; reads the `analytics_events`/`leads` tables the public `POST /track` beacon writes to. Settings → Admins ([pages/admin/settings.vue](frontend/app/pages/admin/settings.vue)) — invite/edit admin users against `App\Support\AdminPermissions` (14 keys + an Operations preset). Audit ([pages/admin/audit.vue](frontend/app/pages/admin/audit.vue)) — reads `AuditLogger`-written ActivityLog entries (`log_name = admin`). Auth is separate from owner/tenant: `/admin/login` + `/admin/accept-invite`, backed by `layouts/admin.vue` + `layouts/auth-admin.vue`. Gated by `useEnv().features.admin` (env `NUXT_PUBLIC_FEATURE_ADMIN`) — always off in demo, so `demo-roofly` never shows it. Demo admin logins: `admin@roofly.my` (super-admin, all permissions) / `ops@roofly.my` (Operations preset), both password `password`.
+
+**Tracking** — `composables/useTrack.ts` fires a `POST /track` beacon (guest, `throttle:track`) on tracked marketing/auth paths only (`/`, `/coming-soon`, `/demo`, `/auth/*`). **Tracking calls never belong inside `/owner`, `/tenant`, or `/admin` pages/components** — those are authenticated product surfaces, not the marketing funnel the beacon measures; `plugins/track.client.ts` and the five explicit call sites (waitlist signup, demo entry, feedback click, register) are the only places `useTrack()`/`track()` should ever be called. Gated by `useEnv().trackingEnabled` (env `NUXT_PUBLIC_TRACKING`, default on) — always `false` in demo, so `demo-roofly` never generates `/api/track` rows even though `AnalyticsDemoSeeder` gives the admin page 90 days of seeded story data (40 leads, 8 converted to real property-less owner users `lead05@example.com`…, password `password`; refuses to run in production).
+
+**Google sign-in + owner onboarding** — owners only, gated by `useEnv().features.googleLogin` (`!isDemo && Boolean(NUXT_PUBLIC_GOOGLE_CLIENT_ID)`; backend needs its own `GOOGLE_CLIENT_ID`, same OAuth web client id). `POST /auth/google` verifies a Google Identity Services ID token via `App\Support\GoogleIdToken` (no Composer package — `laravel/socialite` was rejected, it expects an OAuth access token, not an ID token) and auto-links/creates an owner by verified email; a tenant/admin email 403s with `code: "not_owner"`. `GoogleSignInButton.vue` renders above the login/register form with an `or` divider, never in demo (demo gets a "Continue with Google (demo)" shortcut instead). A new owner (Google or password) with a falsy `onboardedAt` is routed to the full-screen `/owner/onboarding` (`layouts/onboarding.vue`) by a guard in `middleware/auth.global.ts`, picks one or more `Property.purpose` values (`rental`/`own_stay`/`investment`, now required on the type) via `OwnerPurposePicker`, then never sees it again — existing owners were back-filled with `onboardedAt`/`purposes: ["rental"]` so nobody live is retroactively gated. The dashboard's `GettingStartedCard` shows a computed (never stored) getting-started checklist — `utils/onboardingChecklist.ts`'s pure `buildChecklist()`, covered by this repo's first Vitest suite (`docker exec roofly-frontend npm test`). Non-rental properties are excluded from occupancy/dashboard/income and instead show under a "Not for rent" capital-position group in Reports.
 
 ---
 
@@ -64,25 +73,31 @@ frontend/app/
 ├── schemas/       # Zod (vee-validate) — shared between create modals & edit forms
 ├── demo/          # demo-only — NEVER imports useApi
 │   ├── auth.ts    #   demoAuth (localStorage session, email prefix → role), DEMO_TENANT_ID
-│   ├── data/      #   in-memory seed arrays (propertiesMock, unitsMock, …)
-│   └── services/  #   demoX: XService — one per entity + dashboard
+│   ├── data/      #   in-memory seed arrays (propertiesMock, unitsMock, …), admin.ts, analytics.ts
+│   ├── services/  #   demoX: XService — one per entity + dashboard, admin/ subfolder (incl. admin/analytics.ts)
+│   └── track.ts   #   demoTrack: TrackAdapter — hard no-op, demo-roofly must generate zero /api/track rows
 ├── services/
-│   ├── contracts/ # XService interfaces + *WithRefs types (both adapters implement these)
-│   ├── api/       # apiX: XService — Laravel calls via useApi(); NEVER imports ~/demo
-│   └── useX.ts    # auto-imported selector: useEnv().useMock ? demoX : apiX (+ type re-exports)
-├── composables/   # useDashboard, useReports, useTheme, useToast, useMoney, useApi, useApiError
+│   ├── contracts/ # XService interfaces + *WithRefs types (both adapters implement these); admin/ subfolder (incl. analytics.ts)
+│   ├── api/       # apiX: XService — Laravel calls via useApi(); NEVER imports ~/demo; admin/ subfolder (+ query.ts helper); track.ts (sendBeacon/$fetch)
+│   └── useX.ts    # auto-imported selector: useEnv().useMock ? demoX : apiX (+ type re-exports); useAdminAnalytics.ts
+├── composables/   # useDashboard, useReports, useTheme, useToast, useMoney, useApi, useApiError, useAdminPermissions,
+│                  # useAdminDashboardData, useTrack (visitorId + first-touch UTM, gated by trackingEnabled + isTrackedPath),
+│                  # useGoogleSignIn, useOnboardingChecklist (wraps utils/onboardingChecklist.ts's pure buildChecklist())
 ├── components/
 │   ├── ui/        # Card, Pill, Button, Input, Select, Modal, Icon, MoneyDisplay,
 │   │              # MiniAreaChart, EmptyState, Toaster
 │   ├── owner/     # owner-specific (PropertyCard, TenantInviteModal, TicketCard, etc.)
 │   ├── tenant/    # tenant-specific (sidebar nav, etc.)
+│   ├── admin/     # admin-specific (SidebarNav, StatTile, DataTableShell, AuditTable, WarnOwnerModal, SuspendOwnerModal,
+│   │              # AdminFormModal, SourcePill, FunnelStrip, EventList, LeadDrawer, etc.)
 │   ├── topbar/    # ThemeToggle, LangSwitcher, UserMenu
 │   └── layout/    # MobileNavDrawer
 ├── pages/         # routing (Nuxt file-based)
-├── layouts/       # owner.vue, tenant.vue, auth.vue, default.vue
+├── layouts/       # owner.vue, tenant.vue, admin.vue, auth.vue, auth-admin.vue, onboarding.vue (full-screen, /owner/onboarding only), default.vue
 ├── stores/        # auth.ts (Pinia; delegates to demoAuth / apiAuth)
-├── plugins/       # theme.ts, auth-restore.client.ts
-└── utils/         # rpgt.ts, propertyCompletion.ts, csv.ts
+├── plugins/       # theme.ts, auth-restore.client.ts, track.client.ts (page_view on tracked-path navigation)
+├── middleware/    # env.global.ts (renamed from the old demo-only middleware — now also drives the admin-host redirect), auth.global.ts (also the onboarding-screen guard)
+└── utils/         # rpgt.ts, propertyCompletion.ts, csv.ts, warningText.ts, gisLoader.ts, onboardingChecklist.ts (Vitest-covered)
 ```
 
 **Routing rule:** for tab-style detail pages, use `pages/owner/<entity>/index.vue` + `[id].vue` (NOT `<entity>.vue` + `<entity>/[id].vue` — the latter requires `<NuxtPage />` in the parent and silently fails to render the child if you forget).
@@ -100,8 +115,9 @@ frontend/app/
 - **Field tiers** (Properties, Tenants): Tier 1 captured in the create modal; Tier 2/3 edited on the detail page. JSON sub-objects (`ownership`, `utilities`, `personal`, `emergencyContact`) on the model map 1:1 to detail-page tabs and to backend JSON columns.
 - **Co-owners are a separate `property_co_owners` table** on the backend (DB-enforced sum=100 + exactly-one `is_primary`). On the frontend they're a top-level `Property.coOwners[]` with the same invariants validated by Zod.
 - **MalaysianState enum from day one** — never `state: string`.
-- **Sentence case** in all strings, BM and EN. Two font weights only (400 / 600). See [UI-STANDARDS.md § 12](docs/frontend/UI-STANDARDS.md).
+- **Sentence case** in all strings, BM and EN. **Exception: the admin shell is English-only** — `admin.*` and `auth.admin.*` keys live in `en.json` only, `layouts/admin.vue` / `auth-admin.vue` pin the locale to `en` and hide the language switcher. Two font weights only (400 / 600). See [UI-STANDARDS.md § 12](docs/frontend/UI-STANDARDS.md).
 - **i18n: never put a literal `@` in a translation value** — vue-i18n treats it as a linked-message marker and crashes the compiler. Avoid or escape with `{'@'}`.
+- **Admin sees summaries only** — `AdminResourcesTest` (backend) pins the key sets on every admin API Resource. Widen deliberately, never by adding a field to a Resource without updating that test first (money and PII stay out of admin owner/tenant list+detail responses).
 
 ---
 
@@ -140,6 +156,9 @@ open http://localhost:3000        # owner login lands at /auth/login
 # typecheck
 docker exec roofly-frontend npm run typecheck
 
+# unit tests (Vitest — pure .ts modules only, no jsdom/@vue-test-utils yet)
+docker exec roofly-frontend npm test
+
 # install a new package (must run inside the container)
 docker exec roofly-frontend npm install <pkg>
 
@@ -150,9 +169,12 @@ docker logs -f roofly-frontend
 **API-mode credentials** (from `DemoSeeder`, all password `password`): owner `aminah@roofly.my`; tenants `aminah.yusof@example.com` (the richest record — active agreement, invoices, tickets), `arif.hakim@example.com`, `limlw@example.com`, `ravik@example.com`, `siti.khadijah@example.com`. There is no `tenant@roofly.my` in the DB.
 
 **Demo auth credentials** (demo mode only — `app/demo/auth.ts`):
-- Owner: any email NOT starting with `tenant`/`admin` (e.g. `aminah@roofly.my`)
+- Owner: any email NOT starting with `tenant`/`admin`/`ops` (e.g. `aminah@roofly.my`)
 - Tenant: any email starting with `tenant` (e.g. `tenant@example.com`)
+- `admin@…` / `ops@…` sign in at `/admin/login` only (`loginAdmin`, not the customer form — spec § 4).
 - Auth persists across refresh via `localStorage["roofly_auth"]`.
+
+**Admin credentials** (API mode, from `DemoSeeder`, password `password`, sign in at `/admin/login`): `admin@roofly.my` (super-admin) and `ops@roofly.my` (Operations preset). Admin is gated by `features.admin` and is always off in demo — there's no demo-mode admin login.
 
 ---
 
